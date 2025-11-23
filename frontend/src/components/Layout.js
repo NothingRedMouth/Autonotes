@@ -129,7 +129,7 @@ const Layout = ({ children }) => {
           color: '#6b7280',
           fontSize: '14px'
         }}>
-          <p>Autonotes — автоматическое создание конспектов лекций © 2024</p>
+          <p>Autonotes — автоматическое создание конспектов лекций</p>
         </div>
       </footer>
     </div>

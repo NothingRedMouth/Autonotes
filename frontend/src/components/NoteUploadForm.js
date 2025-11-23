@@ -100,7 +100,7 @@ const NoteUploadForm = () => {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            placeholder="Например: Лекция по математике от 10.11.2024"
+            placeholder="Например: Лекция по математике"
             style={{
               width: '100%',
               padding: '10px 12px',
