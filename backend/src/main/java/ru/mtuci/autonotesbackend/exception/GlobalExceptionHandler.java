@@ -13,6 +13,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import ru.mtuci.autonotesbackend.exception.dto.ErrorResponseDto;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.FileStorageException;
@@ -83,6 +84,12 @@ public class GlobalExceptionHandler {
         log.warn("Missing request part: {}", ex.getMessage());
         String message = String.format("Required part '%s' is not present.", ex.getRequestPartName());
         return createErrorResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponseDto> handleMaxSizeException(MaxUploadSizeExceededException ex) {
+        log.warn("File upload limit exceeded: {}", ex.getMessage());
+        return createErrorResponse(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds the allowable limit (10MB).");
     }
 
     @ExceptionHandler(Exception.class)
