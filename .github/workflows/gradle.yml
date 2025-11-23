@@ -2,12 +2,12 @@ name: Backend CI (Java/Gradle)
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
