@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <Match>
+    <Source name="~.*Test\.java" />
+  </Match>
+  <Match>
+    <Class name="~.*SecurityConfig.*" />
+    <Bug pattern="SE_BAD_FIELD,SE_NO_SERIALVERSIONID" />
+  </Match>
+</FindBugsFilter>
