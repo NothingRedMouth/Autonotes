@@ -2,13 +2,15 @@ FROM eclipse-temurin:24-jdk-noble as builder
 
 WORKDIR /app
 
-COPY build.gradle.kts settings.gradle.kts ./
+COPY build.gradle* settings.gradle* ./
 COPY gradlew ./
 COPY gradle ./gradle
 
-COPY src ./src
-
 RUN chmod +x ./gradlew
+
+RUN ./gradlew dependencies --no-daemon || true
+
+COPY src ./src
 
 RUN ./gradlew bootJar --no-daemon
 
