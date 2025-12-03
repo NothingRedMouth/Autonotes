@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import ru.mtuci.autonotesbackend.exception.dto.ErrorResponseDto;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.FileStorageException;
+import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.InvalidFileFormatException;
 
 @Slf4j
 @ControllerAdvice
@@ -90,6 +91,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleMaxSizeException(MaxUploadSizeExceededException ex) {
         log.warn("File upload limit exceeded: {}", ex.getMessage());
         return createErrorResponse(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds the allowable limit (10MB).");
+    }
+
+    @ExceptionHandler(InvalidFileFormatException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidFileFormat(InvalidFileFormatException ex) {
+        log.warn("Invalid file format: {}", ex.getMessage());
+        return createErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
