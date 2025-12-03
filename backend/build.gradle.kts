@@ -54,6 +54,8 @@ dependencies {
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("commons-io:commons-io:2.20.0")
     implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
     compileOnly("org.projectlombok:lombok:1.18.42")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
