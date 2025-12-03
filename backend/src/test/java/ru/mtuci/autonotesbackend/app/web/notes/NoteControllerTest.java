@@ -84,8 +84,10 @@ class NoteControllerTest extends BaseIntegrationTest {
         User user = createUserInDb("note-user", "note@test.com");
         String token = loginAndGetToken();
 
-        MockMultipartFile file =
-                new MockMultipartFile("file", "hello.jpg", MediaType.IMAGE_JPEG_VALUE, "Hello, World!".getBytes());
+        byte[] jpegContent = new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x01, 0x02};
+
+        MockMultipartFile file = new MockMultipartFile("file", "hello.jpg", MediaType.IMAGE_JPEG_VALUE, jpegContent);
+
         MockPart titlePart = new MockPart("title", "My First Lecture".getBytes());
 
         // Act
@@ -136,7 +138,7 @@ class NoteControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    void uploadNote_withEmptyFile_shouldReturnServiceUnavailable() throws Exception {
+    void uploadNote_withEmptyFile_shouldReturnBadRequest() throws Exception {
         String token = loginAndGetToken("test-user", true);
         MockMultipartFile emptyFile =
                 new MockMultipartFile("file", "empty.txt", MediaType.TEXT_PLAIN_VALUE, new byte[0]);
@@ -146,7 +148,8 @@ class NoteControllerTest extends BaseIntegrationTest {
                         .file(emptyFile)
                         .part(titlePart)
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isServiceUnavailable());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Cannot save an empty file."));
     }
 
     @Test
@@ -154,8 +157,10 @@ class NoteControllerTest extends BaseIntegrationTest {
         // Arrange
         String token = loginAndGetToken("fail-user", true);
 
-        MockMultipartFile file =
-                new MockMultipartFile("file", "fail.jpg", MediaType.IMAGE_JPEG_VALUE, "content".getBytes());
+        byte[] jpegContent = new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x01, 0x02};
+
+        MockMultipartFile file = new MockMultipartFile("file", "fail.jpg", MediaType.IMAGE_JPEG_VALUE, jpegContent);
+
         MockPart titlePart = new MockPart("title", "Failing Upload".getBytes());
 
         doThrow(SdkException.builder().message("MinIO is down").build())

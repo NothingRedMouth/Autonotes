@@ -1,14 +1,17 @@
 package ru.mtuci.autonotesbackend.modules.filestorage.impl.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.FileStorageException;
+import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.InvalidFileFormatException;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -21,17 +24,37 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 public class FileStorageService {
 
     private final S3Client s3Client;
+    private final Tika tika = new Tika();
 
     @Value("${aws.s3.bucket}")
     private String bucketName;
 
     public String save(MultipartFile file, Long userId) {
         if (file.isEmpty()) {
-            throw new FileStorageException("Cannot save an empty file.");
+            throw new InvalidFileFormatException("Cannot save an empty file.");
+        }
+
+        try (InputStream is = file.getInputStream()) {
+            String detectedType = tika.detect(is);
+
+            if (!detectedType.startsWith("image/")) {
+                log.warn(
+                        "Security Alert: User {} tried to upload file '{}' detected as '{}'",
+                        userId,
+                        file.getOriginalFilename(),
+                        detectedType);
+                throw new InvalidFileFormatException("Invalid file type. Only images are allowed.");
+            }
+        } catch (IOException e) {
+            throw new InvalidFileFormatException("Failed to validate file content");
         }
 
         try {
             String extension = FilenameUtils.getExtension(file.getOriginalFilename());
+            if (extension == null || extension.isBlank()) {
+                extension = "jpg";
+            }
+
             String uniqueFileName = UUID.randomUUID() + "." + extension;
             String filePath = userId + "/" + uniqueFileName;
 
