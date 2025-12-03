@@ -1,6 +1,5 @@
 package ru.mtuci.autonotesbackend.modules.notes.impl;
 
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,6 +12,8 @@ import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDto;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
 import ru.mtuci.autonotesbackend.modules.notes.impl.mapper.NoteMapper;
 import ru.mtuci.autonotesbackend.modules.notes.impl.service.NoteService;
+
+import java.util.List;
 
 @Slf4j
 @Component
@@ -27,11 +28,13 @@ public class NoteFacadeImpl implements NoteFacade {
     @Transactional
     public NoteDto createNote(String title, MultipartFile file, Long userId) {
         String filePath = fileStorageFacade.save(file, userId);
+
         try {
             LectureNote newNote = noteService.createNote(title, file, filePath, userId);
+
             return noteMapper.toDto(newNote);
         } catch (Exception e) {
-            log.error("Failed to create note record in DB, rolling back file upload. Path: {}", filePath, e);
+            log.error("Business logic failed. Rolling back file upload: {}", filePath, e);
             fileStorageFacade.delete(filePath);
             throw e;
         }
