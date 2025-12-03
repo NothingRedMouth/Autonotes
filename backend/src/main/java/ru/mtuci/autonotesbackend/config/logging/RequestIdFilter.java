@@ -1,6 +1,7 @@
 package ru.mtuci.autonotesbackend.config.logging;
 
 import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
@@ -18,16 +19,20 @@ public class RequestIdFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+        throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+        String requestId = httpRequest.getHeader(HEADER_NAME);
+
+        if (requestId == null || requestId.isBlank()) {
+            requestId = UUID.randomUUID().toString();
+        }
 
         try {
-            String requestId = UUID.randomUUID().toString();
             MDC.put(REQUEST_ID_KEY, requestId);
-
-            if (response instanceof HttpServletResponse httpResponse) {
-                httpResponse.setHeader(HEADER_NAME, requestId);
-            }
-
+            httpResponse.setHeader(HEADER_NAME, requestId);
             chain.doFilter(request, response);
         } finally {
             MDC.clear();
