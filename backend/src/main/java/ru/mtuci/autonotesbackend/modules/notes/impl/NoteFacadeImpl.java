@@ -27,14 +27,16 @@ public class NoteFacadeImpl implements NoteFacade {
     @Transactional
     public NoteDto createNote(String title, MultipartFile file, Long userId) {
         String filePath = fileStorageFacade.save(file, userId);
-
         try {
             LectureNote newNote = noteService.createNote(title, file, filePath, userId);
-
             return noteMapper.toDto(newNote);
         } catch (Exception e) {
-            log.error("Business logic failed. Rolling back file upload: {}", filePath, e);
-            fileStorageFacade.delete(filePath);
+            log.error("Business logic failed. Attempting to rollback file: {}", filePath, e);
+            try {
+                fileStorageFacade.delete(filePath);
+            } catch (Exception deleteEx) {
+                log.error("Failed to delete file during rollback: {}", filePath, deleteEx);
+            }
             throw e;
         }
     }
