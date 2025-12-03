@@ -1,5 +1,6 @@
 package ru.mtuci.autonotesbackend.modules.notes.impl;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -12,8 +13,6 @@ import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDto;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
 import ru.mtuci.autonotesbackend.modules.notes.impl.mapper.NoteMapper;
 import ru.mtuci.autonotesbackend.modules.notes.impl.service.NoteService;
-
-import java.util.List;
 
 @Slf4j
 @Component

@@ -39,7 +39,7 @@ class NoteCleanupServiceTest {
         stuckNote.setStatus(NoteStatus.PROCESSING);
 
         when(noteRepository.findAllByStatusAndUpdatedAtBefore(eq(NoteStatus.PROCESSING), any(OffsetDateTime.class)))
-            .thenReturn(List.of(stuckNote));
+                .thenReturn(List.of(stuckNote));
 
         // Act
         noteCleanupService.markStuckNotesAsFailed();
@@ -49,14 +49,13 @@ class NoteCleanupServiceTest {
         assert stuckNote.getSummaryText().contains("timed out");
 
         verify(noteRepository, times(1))
-            .findAllByStatusAndUpdatedAtBefore(eq(NoteStatus.PROCESSING), any(OffsetDateTime.class));
+                .findAllByStatusAndUpdatedAtBefore(eq(NoteStatus.PROCESSING), any(OffsetDateTime.class));
     }
 
     @Test
     void markStuckNotesAsFailed_whenNoStuckNotes_shouldDoNothing() {
         // Arrange
-        when(noteRepository.findAllByStatusAndUpdatedAtBefore(any(), any()))
-            .thenReturn(List.of());
+        when(noteRepository.findAllByStatusAndUpdatedAtBefore(any(), any())).thenReturn(List.of());
 
         // Act
         noteCleanupService.markStuckNotesAsFailed();

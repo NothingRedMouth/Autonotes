@@ -56,7 +56,7 @@ dependencies {
     implementation("org.apache.commons:commons-compress:1.27.1")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
     implementation("org.springframework.boot:spring-boot-starter-aop")
-    implementation ("org.springframework.boot:spring-boot-starter-amqp")
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
     compileOnly("org.projectlombok:lombok:1.18.42")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
@@ -71,7 +71,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.2")
     testImplementation("org.testcontainers:testcontainers-postgresql:2.0.2")
     testImplementation("org.testcontainers:testcontainers-minio:2.0.2")
-    testImplementation ("org.testcontainers:rabbitmq")
+    testImplementation("org.testcontainers:rabbitmq")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

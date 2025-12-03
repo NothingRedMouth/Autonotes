@@ -14,10 +14,7 @@ import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteReposi
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 import ru.mtuci.autonotesbackend.modules.user.impl.repository.UserRepository;
 
-@TestPropertySource(properties = {
-    "app.notes.processing-timeout-minutes=10",
-    "app.scheduling.cleanup-cron=-"
-})
+@TestPropertySource(properties = {"app.notes.processing-timeout-minutes=10", "app.scheduling.cleanup-cron=-"})
 class NoteCleanupServiceIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
@@ -35,32 +32,33 @@ class NoteCleanupServiceIntegrationTest extends BaseIntegrationTest {
     @Test
     void shouldMarkOldProcessingNotesAsFailed() {
         User user = userRepository.save(User.builder()
-            .username("time_traveler")
-            .email("mcfly@example.com")
-            .password("doc123")
-            .build());
+                .username("time_traveler")
+                .email("mcfly@example.com")
+                .password("doc123")
+                .build());
 
         LectureNote freshNote = noteRepository.save(LectureNote.builder()
-            .user(user)
-            .title("Fresh Note")
-            .originalFileName("fresh.jpg")
-            .fileStoragePath("1/fresh.jpg")
-            .status(NoteStatus.PROCESSING)
-            .build());
+                .user(user)
+                .title("Fresh Note")
+                .originalFileName("fresh.jpg")
+                .fileStoragePath("1/fresh.jpg")
+                .status(NoteStatus.PROCESSING)
+                .build());
 
         LectureNote oldNote = noteRepository.save(LectureNote.builder()
-            .user(user)
-            .title("Stuck Note")
-            .originalFileName("stuck.jpg")
-            .fileStoragePath("1/stuck.jpg")
-            .status(NoteStatus.PROCESSING)
-            .build());
+                .user(user)
+                .title("Stuck Note")
+                .originalFileName("stuck.jpg")
+                .fileStoragePath("1/stuck.jpg")
+                .status(NoteStatus.PROCESSING)
+                .build());
 
         jdbcTemplate.execute("ALTER TABLE lecture_notes DISABLE TRIGGER update_lecture_notes_updated_at");
 
-        jdbcTemplate.update("UPDATE lecture_notes SET updated_at = ? WHERE id = ?",
-            OffsetDateTime.now().minusMinutes(20),
-            oldNote.getId());
+        jdbcTemplate.update(
+                "UPDATE lecture_notes SET updated_at = ? WHERE id = ?",
+                OffsetDateTime.now().minusMinutes(20),
+                oldNote.getId());
 
         jdbcTemplate.execute("ALTER TABLE lecture_notes ENABLE TRIGGER update_lecture_notes_updated_at");
         noteCleanupService.markStuckNotesAsFailed();

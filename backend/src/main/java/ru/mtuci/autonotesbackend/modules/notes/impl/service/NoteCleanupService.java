@@ -27,23 +27,27 @@ public class NoteCleanupService {
     public void markStuckNotesAsFailed() {
         OffsetDateTime threshold = OffsetDateTime.now().minusMinutes(processingTimeoutMinutes);
 
-        List<LectureNote> stuckNotes = noteRepository.findAllByStatusAndUpdatedAtBefore(
-            NoteStatus.PROCESSING, threshold
-        );
+        List<LectureNote> stuckNotes =
+                noteRepository.findAllByStatusAndUpdatedAtBefore(NoteStatus.PROCESSING, threshold);
 
         if (stuckNotes.isEmpty()) {
             return;
         }
 
-        log.info("Found {} stuck notes (older than {} min). Marking as FAILED.",
-            stuckNotes.size(), processingTimeoutMinutes);
+        log.info(
+                "Found {} stuck notes (older than {} min). Marking as FAILED.",
+                stuckNotes.size(),
+                processingTimeoutMinutes);
 
         for (LectureNote note : stuckNotes) {
             note.setStatus(NoteStatus.FAILED);
             note.setSummaryText("Processing timed out. The server took too long to respond.");
 
-            log.warn("Note ID {} marked as FAILED. Created: {}, Last Updated: {}",
-                note.getId(), note.getCreatedAt(), note.getUpdatedAt());
+            log.warn(
+                    "Note ID {} marked as FAILED. Created: {}, Last Updated: {}",
+                    note.getId(),
+                    note.getCreatedAt(),
+                    note.getUpdatedAt());
         }
     }
 }

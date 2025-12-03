@@ -1,5 +1,6 @@
 package ru.mtuci.autonotesbackend.modules.notes.impl.service;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -15,8 +16,6 @@ import ru.mtuci.autonotesbackend.modules.notes.impl.event.NoteProcessingEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 import ru.mtuci.autonotesbackend.modules.user.impl.repository.UserRepository;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -35,12 +34,12 @@ public class NoteService {
         User user = userRepository.getReferenceById(userId);
 
         LectureNote note = LectureNote.builder()
-            .title(title)
-            .user(user)
-            .originalFileName(file.getOriginalFilename())
-            .fileStoragePath(filePath)
-            .status(NoteStatus.PROCESSING)
-            .build();
+                .title(title)
+                .user(user)
+                .originalFileName(file.getOriginalFilename())
+                .fileStoragePath(filePath)
+                .status(NoteStatus.PROCESSING)
+                .build();
 
         LectureNote savedNote = noteRepository.save(note);
 
@@ -51,17 +50,9 @@ public class NoteService {
 
     private void sendProcessingEvent(LectureNote note) {
         try {
-            NoteProcessingEvent event = new NoteProcessingEvent(
-                note.getId(),
-                bucketName,
-                note.getFileStoragePath()
-            );
+            NoteProcessingEvent event = new NoteProcessingEvent(note.getId(), bucketName, note.getFileStoragePath());
 
-            rabbitTemplate.convertAndSend(
-                RabbitMqConfig.EXCHANGE_NOTES,
-                RabbitMqConfig.ROUTING_KEY_PROCESS,
-                event
-            );
+            rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE_NOTES, RabbitMqConfig.ROUTING_KEY_PROCESS, event);
             log.info("Event sent to RabbitMQ for noteId: {}", note.getId());
         } catch (Exception e) {
             log.error("Failed to send event to RabbitMQ for noteId: {}. Fallback to scheduler.", note.getId(), e);
@@ -76,8 +67,8 @@ public class NoteService {
     @Transactional(readOnly = true)
     public LectureNote findByIdAndUserId(Long noteId, Long userId) {
         return noteRepository
-            .findByIdAndUserId(noteId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + noteId));
+                .findByIdAndUserId(noteId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + noteId));
     }
 
     @Transactional
