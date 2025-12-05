@@ -1,4 +1,4 @@
-package ru.mtuci.autonotesbackend.exception;
+package ru.mtuci.autonotesbackend.modules.user.api.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;

@@ -19,6 +19,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import ru.mtuci.autonotesbackend.exception.dto.ErrorResponseDto;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.FileStorageException;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.InvalidFileFormatException;
+import ru.mtuci.autonotesbackend.modules.user.api.exception.UserAlreadyExistsException;
 
 @Slf4j
 @ControllerAdvice

@@ -1,4 +1,4 @@
-package ru.mtuci.autonotesbackend.app.web.user;
+package ru.mtuci.autonotesbackend.modules.user.api.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

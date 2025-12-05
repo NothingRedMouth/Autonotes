@@ -1,4 +1,4 @@
-package ru.mtuci.autonotesbackend.app.web.notes;
+package ru.mtuci.autonotesbackend.modules.notes.api.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

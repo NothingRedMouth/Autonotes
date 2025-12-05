@@ -1,4 +1,4 @@
-package ru.mtuci.autonotesbackend.app.web.auth;
+package ru.mtuci.autonotesbackend.modules.user.api.controller;
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
