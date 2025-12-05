@@ -99,10 +99,8 @@ public class NoteService {
     }
 
     @Transactional
-    public String deleteByIdAndUserId(Long noteId, Long userId) {
+    public void deleteByIdAndUserId(Long noteId, Long userId) {
         LectureNote noteToDelete = findByIdAndUserId(noteId, userId);
-        String filePath = noteToDelete.getFileStoragePath();
         noteRepository.delete(noteToDelete);
-        return filePath;
     }
 }

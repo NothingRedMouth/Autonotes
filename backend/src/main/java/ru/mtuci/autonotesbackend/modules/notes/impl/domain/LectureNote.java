@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 
@@ -15,6 +17,8 @@ import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 @EqualsAndHashCode(of = "id")
 @Entity
 @Table(name = "lecture_notes")
+@SQLDelete(sql = "UPDATE lecture_notes SET deleted_at = now() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class LectureNote {
 
     @Id
@@ -50,4 +54,7 @@ public class LectureNote {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
 }

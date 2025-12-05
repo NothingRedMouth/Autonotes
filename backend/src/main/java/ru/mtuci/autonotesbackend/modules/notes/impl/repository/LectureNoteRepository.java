@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -27,7 +28,15 @@ public interface LectureNoteRepository extends JpaRepository<LectureNote, Long> 
             + "ORDER BY ln.createdAt DESC")
     List<NoteProjection> findAllProjectedByUserId(@Param("userId") Long userId);
 
-    boolean existsByFileStoragePath(String fileStoragePath);
+    @Query(value = "SELECT count(*) > 0 FROM lecture_notes WHERE file_storage_path = :path", nativeQuery = true)
+    boolean existsByFileStoragePath(@Param("path") String fileStoragePath);
+
+    @Query(value = "SELECT * FROM lecture_notes WHERE deleted_at < :threshold", nativeQuery = true)
+    List<LectureNote> findAllSoftDeletedBefore(@Param("threshold") OffsetDateTime threshold, Pageable pageable);
+
+    @Modifying
+    @Query(value = "DELETE FROM lecture_notes WHERE id = :id", nativeQuery = true)
+    void hardDeleteById(@Param("id") Long id);
 
     interface NoteProjection {
         Long getId();

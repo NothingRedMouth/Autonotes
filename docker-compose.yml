@@ -59,25 +59,37 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     ports:
       - "${APP_PORT}:8080"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=none
+      - SPRING_PROFILES_ACTIVE=docker,minio-storage
+
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION_MS=${JWT_EXPIRATION_MS}
-      - ML_SERVICE_URL=${ML_SERVICE_URL}
-      - SPRING_PROFILES_ACTIVE=minio-storage
+
       - MINIO_ENDPOINT=http://minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-      - MINIO_BUCKET=${MINIO_BUCKET}
+      - aws.s3.bucket=${MINIO_BUCKET}
+
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USER}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+
+      - app.scheduling.cleanup-cron=${APP_CLEANUP_CRON}
+      - app.notes.processing-timeout-minutes=${APP_PROCESSING_TIMEOUT}
+      - app.scheduling.outbox-interval-ms=${APP_OUTBOX_INTERVAL}
+      - app.scheduling.s3-cleanup-cron=${APP_S3_CLEANUP_CRON}
+      - app.scheduling.cleanup-retention-hours=${APP_S3_RETENTION_HOURS}
+      - app.notes.soft-delete-retention-days=${APP_SOFT_DELETE_RETENTION_DAYS}
+      - app.scheduling.soft-delete-cleanup-cron=${APP_SOFT_DELETE_CLEANUP_CRON}
 
 volumes:
   postgres-data:
