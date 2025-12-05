@@ -53,10 +53,6 @@ public class NoteFacadeImpl implements NoteFacade {
 
     @Override
     public void deleteNote(Long noteId, Long userId) {
-        String filePath = noteService.deleteByIdAndUserId(noteId, userId);
-
-        if (filePath != null) {
-            fileStorageFacade.delete(filePath);
-        }
+        noteService.deleteByIdAndUserId(noteId, userId);
     }
 }
