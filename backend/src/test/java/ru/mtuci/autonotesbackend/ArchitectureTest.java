@@ -28,12 +28,21 @@ public class ArchitectureTest {
                         "javax..",
                         "jakarta..",
                         "org.springframework..",
-                        "ru.mtuci.autonotesbackend.app..",
                         "ru.mtuci.autonotesbackend.exception..",
                         "lombok..",
                         "org.slf4j..",
                         "io.swagger.v3.oas.annotations..",
                         "io.github.resilience4j..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void controllers_should_reside_in_modules_api_controller() {
+        classes()
+                .that()
+                .haveSimpleNameEndingWith("Controller")
+                .should()
+                .resideInAPackage("..modules..api.controller..")
                 .check(importedClasses);
     }
 
