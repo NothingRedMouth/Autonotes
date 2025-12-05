@@ -68,6 +68,7 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
+                .clock(() -> Date.from(clock.instant()))
                 .verifyWith(getSignInKey())
                 .build()
                 .parseSignedClaims(token)
