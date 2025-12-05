@@ -1,8 +1,10 @@
 package ru.mtuci.autonotesbackend.modules.notes.impl.repository;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -30,6 +32,9 @@ public interface LectureNoteRepository extends JpaRepository<LectureNote, Long> 
 
     @Query(value = "SELECT count(*) > 0 FROM lecture_notes WHERE file_storage_path = :path", nativeQuery = true)
     boolean existsByFileStoragePath(@Param("path") String fileStoragePath);
+
+    @Query("SELECT ln.fileStoragePath FROM LectureNote ln WHERE ln.fileStoragePath IN :paths")
+    Set<String> findExistingPaths(@Param("paths") Collection<String> paths);
 
     @Query(value = "SELECT * FROM lecture_notes WHERE deleted_at < :threshold", nativeQuery = true)
     List<LectureNote> findAllSoftDeletedBefore(@Param("threshold") OffsetDateTime threshold, Pageable pageable);

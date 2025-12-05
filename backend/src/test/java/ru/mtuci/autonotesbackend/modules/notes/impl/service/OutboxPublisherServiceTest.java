@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import ru.mtuci.autonotesbackend.config.RabbitMqConfig;
+import ru.mtuci.autonotesbackend.modules.notes.impl.config.RabbitMqConfig;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.OutboxEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.event.NoteProcessingEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.OutboxEventRepository;

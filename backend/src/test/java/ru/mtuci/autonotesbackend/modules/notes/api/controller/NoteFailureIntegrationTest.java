@@ -1,4 +1,4 @@
-package ru.mtuci.autonotesbackend.app.web.notes;
+package ru.mtuci.autonotesbackend.modules.notes.api.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,7 +66,7 @@ class NoteFailureIntegrationTest extends BaseIntegrationTest {
 
         doThrow(new RuntimeException("Database Connection Error"))
                 .when(noteService)
-                .createNote(anyString(), any(), anyString(), eq(user.getId()));
+                .createNote(anyString(), any(), eq(user.getId()));
 
         int initialCount = countFilesInBucket();
 

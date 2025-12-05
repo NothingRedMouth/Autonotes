@@ -2,11 +2,14 @@ package ru.mtuci.autonotesbackend.modules.filestorage.impl.service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -28,14 +31,10 @@ public class StorageCleanupService {
     @Value("${app.scheduling.cleanup-retention-hours:24}")
     private int retentionHours;
 
-    /**
-     * Задача Garbage Collector'а:
-     * Удалять файлы из S3, на которые нет ссылок в БД (файлы-сироты).
-     * Запускается раз в сутки (ночью).
-     */
     @Scheduled(cron = "${app.scheduling.s3-cleanup-cron:0 0 3 * * *}")
+    @Transactional(readOnly = true)
     public void cleanupOrphanedFiles() {
-        log.info("Starting S3 orphaned files cleanup job...");
+        log.info("Starting S3 orphaned files cleanup job (Batch Mode)...");
 
         Instant retentionThreshold = Instant.now().minus(retentionHours, ChronoUnit.HOURS);
 
@@ -53,22 +52,29 @@ public class StorageCleanupService {
                 }
 
                 ListObjectsV2Response response = s3Client.listObjectsV2(requestBuilder.build());
+                List<S3Object> s3Objects = response.contents();
 
-                for (S3Object s3Object : response.contents()) {
-                    scannedCount++;
+                if (s3Objects.isEmpty()) {
+                    break;
+                }
 
-                    if (s3Object.lastModified().isAfter(retentionThreshold)) {
-                        continue;
-                    }
+                scannedCount += s3Objects.size();
 
-                    String fileKey = s3Object.key();
+                List<String> candidatesToCheck = s3Objects.stream()
+                        .filter(obj -> !obj.key().endsWith("/"))
+                        .filter(obj -> obj.lastModified().isBefore(retentionThreshold))
+                        .map(S3Object::key)
+                        .toList();
 
-                    if (fileKey.endsWith("/")) {
-                        continue;
-                    }
+                if (!candidatesToCheck.isEmpty()) {
+                    Set<String> existingFiles = noteRepository.findExistingPaths(candidatesToCheck);
 
-                    if (!noteRepository.existsByFileStoragePath(fileKey)) {
-                        deleteFromS3(fileKey);
+                    List<String> orphans = candidatesToCheck.stream()
+                            .filter(key -> !existingFiles.contains(key))
+                            .toList();
+
+                    for (String orphanKey : orphans) {
+                        deleteFromS3(orphanKey);
                         deletedCount++;
                     }
                 }
@@ -76,6 +82,7 @@ public class StorageCleanupService {
                 continuationToken = response.nextContinuationToken();
 
             } while (continuationToken != null);
+
         } catch (Exception e) {
             log.error("Error during S3 cleanup", e);
         }

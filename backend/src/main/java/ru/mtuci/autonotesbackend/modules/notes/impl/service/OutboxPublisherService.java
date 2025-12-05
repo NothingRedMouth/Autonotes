@@ -5,13 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.mtuci.autonotesbackend.config.RabbitMqConfig;
+import ru.mtuci.autonotesbackend.modules.notes.impl.config.RabbitMqConfig;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.OutboxEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.event.NoteProcessingEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.OutboxEventRepository;
@@ -36,14 +37,24 @@ public class OutboxPublisherService {
             return;
         }
 
-        log.debug("Found {} outbox events to publish", events.size());
-
         for (OutboxEvent event : events) {
             try {
                 processEvent(event);
                 outboxEventRepository.delete(event);
+
+            } catch (JsonProcessingException e) {
+                log.error(
+                        "Fatal error: Corrupted payload in event ID {}. Deleting to prevent blocking.",
+                        event.getId(),
+                        e);
+                outboxEventRepository.delete(event);
+
+            } catch (AmqpException e) {
+                log.error("Transient error: Could not connect to RabbitMQ. Will retry later.", e);
+                break;
+
             } catch (Exception e) {
-                log.error("Failed to publish event id: {}. Will retry next cycle.", event.getId(), e);
+                log.error("Unknown error processing event ID {}. Stopping batch.", event.getId(), e);
                 break;
             }
         }

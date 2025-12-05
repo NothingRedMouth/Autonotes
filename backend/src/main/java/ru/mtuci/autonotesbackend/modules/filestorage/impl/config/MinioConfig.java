@@ -1,4 +1,4 @@
-package ru.mtuci.autonotesbackend.config;
+package ru.mtuci.autonotesbackend.modules.filestorage.impl.config;
 
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package ru.mtuci.autonotesbackend.app.web.user;
+package ru.mtuci.autonotesbackend.modules.user.api.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

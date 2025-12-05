@@ -8,8 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import ru.mtuci.autonotesbackend.exception.ResourceNotFoundException;
+import ru.mtuci.autonotesbackend.modules.filestorage.api.FileStorageFacade;
 import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDto;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
@@ -29,27 +31,42 @@ public class NoteService {
     private final UserRepository userRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
+    private final FileStorageFacade fileStorageFacade;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${aws.s3.bucket}")
     private String bucketName;
 
-    @Transactional
-    public LectureNote createNote(String title, MultipartFile file, String filePath, Long userId) {
-        User user = userRepository.getReferenceById(userId);
+    public LectureNote createNote(String title, MultipartFile file, Long userId) {
+        String filePath = fileStorageFacade.save(file, userId);
 
-        LectureNote note = LectureNote.builder()
-                .title(title)
-                .user(user)
-                .originalFileName(file.getOriginalFilename())
-                .fileStoragePath(filePath)
-                .status(NoteStatus.PROCESSING)
-                .build();
+        try {
+            return transactionTemplate.execute(status -> {
+                User user = userRepository.getReferenceById(userId);
 
-        LectureNote savedNote = noteRepository.save(note);
+                LectureNote note = LectureNote.builder()
+                        .title(title)
+                        .user(user)
+                        .originalFileName(file.getOriginalFilename())
+                        .fileStoragePath(filePath)
+                        .status(NoteStatus.PROCESSING)
+                        .build();
 
-        saveOutboxEvent(savedNote);
+                LectureNote savedNote = noteRepository.save(note);
+                saveOutboxEvent(savedNote);
 
-        return savedNote;
+                return savedNote;
+            });
+
+        } catch (Exception e) {
+            log.error("Database transaction failed for file: {}. Rolling back S3 upload.", filePath, e);
+            try {
+                fileStorageFacade.delete(filePath);
+            } catch (Exception deleteEx) {
+                log.error("Failed to rollback file: {}", filePath, deleteEx);
+            }
+            throw e;
+        }
     }
 
     private void saveOutboxEvent(LectureNote note) {
