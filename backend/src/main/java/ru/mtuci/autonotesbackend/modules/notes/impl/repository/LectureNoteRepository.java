@@ -27,6 +27,8 @@ public interface LectureNoteRepository extends JpaRepository<LectureNote, Long> 
         "ORDER BY ln.createdAt DESC")
     List<NoteProjection> findAllProjectedByUserId(@Param("userId") Long userId);
 
+    boolean existsByFileStoragePath(String fileStoragePath);
+
     interface NoteProjection {
         Long getId();
         Long getUserId();
