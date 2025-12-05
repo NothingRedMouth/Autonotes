@@ -28,35 +28,40 @@ class LectureNoteRepositoryTest extends BaseIntegrationTest {
     private EntityManager entityManager;
 
     @Test
-    void findAllProjectedByUserId_shouldReturnCorrectProjection() {
+    void findExistingPaths_shouldReturnOnlyPathsPresentInDb() {
         // Arrange
         User user = userRepository.save(User.builder()
-                .username("proj_user")
-                .email("proj@test.com")
+                .username("batch_check")
+                .email("batch@test.com")
                 .password("pass")
                 .build());
 
         lectureNoteRepository.save(LectureNote.builder()
                 .user(user)
-                .title("Projection Title")
-                .originalFileName("orig.jpg")
-                .fileStoragePath("path/1")
-                .status(NoteStatus.PROCESSING)
+                .title("Note 1")
+                .originalFileName("1.jpg")
+                .fileStoragePath("path/exist_1.jpg")
+                .status(NoteStatus.COMPLETED)
                 .build());
 
+        lectureNoteRepository.save(LectureNote.builder()
+                .user(user)
+                .title("Note 2")
+                .originalFileName("2.jpg")
+                .fileStoragePath("path/exist_2.jpg")
+                .status(NoteStatus.COMPLETED)
+                .build());
+
+        List<String> pathsToCheck =
+                List.of("path/exist_1.jpg", "path/exist_2.jpg", "path/phantom_file.jpg", "path/another_fake.jpg");
+
         // Act
-        List<LectureNoteRepository.NoteProjection> result =
-                lectureNoteRepository.findAllProjectedByUserId(user.getId());
+        var result = lectureNoteRepository.findExistingPaths(pathsToCheck);
 
         // Assert
-        assertThat(result).hasSize(1);
-        LectureNoteRepository.NoteProjection projection = result.getFirst();
-
-        assertThat(projection.getTitle()).isEqualTo("Projection Title");
-        assertThat(projection.getStatus()).isEqualTo(NoteStatus.PROCESSING);
-        assertThat(projection.getOriginalFileName()).isEqualTo("orig.jpg");
-        assertThat(projection.getUserId()).isEqualTo(user.getId());
-        assertThat(projection.getCreatedAt()).isNotNull();
+        assertThat(result).hasSize(2);
+        assertThat(result).containsExactlyInAnyOrder("path/exist_1.jpg", "path/exist_2.jpg");
+        assertThat(result).doesNotContain("path/phantom_file.jpg");
     }
 
     @Test
