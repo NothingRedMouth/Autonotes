@@ -12,7 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.mtuci.autonotesbackend.config.RabbitMqConfig;
+import ru.mtuci.autonotesbackend.modules.notes.impl.config.RabbitMqConfig;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.OutboxEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.event.NoteProcessingEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.OutboxEventRepository;
