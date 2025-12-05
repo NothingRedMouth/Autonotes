@@ -3,6 +3,7 @@ package ru.mtuci.autonotesbackend.modules.user.impl.service;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +37,11 @@ public class UserService {
                 .roles(Set.of(Role.ROLE_USER))
                 .build();
 
-        return userRepository.save(user);
+        try {
+            return userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserAlreadyExistsException("User with this username or email already exists");
+        }
     }
 
     @Transactional
