@@ -49,7 +49,7 @@ public class FileStorageService {
             throw new InvalidFileFormatException("Failed to validate file content");
         }
 
-        try {
+        try (InputStream is = file.getInputStream()) {
             String extension = FilenameUtils.getExtension(file.getOriginalFilename());
             if (extension == null || extension.isBlank()) {
                 extension = "jpg";
@@ -65,7 +65,7 @@ public class FileStorageService {
                     .contentLength(file.getSize())
                     .build();
 
-            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(is, file.getSize()));
 
             log.info("File saved to MinIO. Path: {}", filePath);
             return filePath;
