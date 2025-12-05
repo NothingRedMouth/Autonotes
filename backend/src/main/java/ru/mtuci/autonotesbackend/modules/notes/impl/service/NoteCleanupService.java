@@ -35,7 +35,8 @@ public class NoteCleanupService {
         log.info("Starting cleanup of stuck notes (older than {} min)...", processingTimeoutMinutes);
 
         while (hasMoreNotes) {
-            hasMoreNotes = Boolean.TRUE.equals(transactionTemplate.execute(ignored -> processBatch(threshold, batchSize)));
+            hasMoreNotes =
+                    Boolean.TRUE.equals(transactionTemplate.execute(ignored -> processBatch(threshold, batchSize)));
 
             if (hasMoreNotes) {
                 totalProcessed += batchSize;
@@ -51,7 +52,7 @@ public class NoteCleanupService {
         Pageable pageable = PageRequest.of(0, batchSize);
 
         List<LectureNote> stuckNotes =
-            noteRepository.findAllByStatusAndUpdatedAtBefore(NoteStatus.PROCESSING, threshold, pageable);
+                noteRepository.findAllByStatusAndUpdatedAtBefore(NoteStatus.PROCESSING, threshold, pageable);
 
         if (stuckNotes.isEmpty()) {
             return false;

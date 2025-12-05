@@ -45,8 +45,8 @@ public class StorageCleanupService {
 
         try {
             do {
-                ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder()
-                    .bucket(bucketName);
+                ListObjectsV2Request.Builder requestBuilder =
+                        ListObjectsV2Request.builder().bucket(bucketName);
 
                 if (continuationToken != null) {
                     requestBuilder.continuationToken(continuationToken);
@@ -89,10 +89,8 @@ public class StorageCleanupService {
 
     private void deleteFromS3(String key) {
         try {
-            s3Client.deleteObject(DeleteObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .build());
+            s3Client.deleteObject(
+                    DeleteObjectRequest.builder().bucket(bucketName).key(key).build());
             log.info("GC: Deleted orphaned file: {}", key);
         } catch (Exception e) {
             log.error("GC: Failed to delete file: {}", key, e);

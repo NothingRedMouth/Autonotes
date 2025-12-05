@@ -66,21 +66,21 @@ class StorageCleanupServiceTest extends BaseIntegrationTest {
     @Test
     void shouldKeepLinkedFile_EvenIfOld() {
         User user = userRepository.save(User.builder()
-            .username("storage_user")
-            .email("storage@test.com")
-            .password("pass")
-            .build());
+                .username("storage_user")
+                .email("storage@test.com")
+                .password("pass")
+                .build());
 
         String linkedKey = "linked-file.txt";
         createFileInS3(linkedKey);
 
         noteRepository.save(LectureNote.builder()
-            .user(user)
-            .title("Linked Note")
-            .originalFileName("orig.txt")
-            .fileStoragePath(linkedKey)
-            .status(NoteStatus.COMPLETED)
-            .build());
+                .user(user)
+                .title("Linked Note")
+                .originalFileName("orig.txt")
+                .fileStoragePath(linkedKey)
+                .status(NoteStatus.COMPLETED)
+                .build());
 
         ReflectionTestUtils.setField(cleanupService, "retentionHours", 0);
 
@@ -91,14 +91,14 @@ class StorageCleanupServiceTest extends BaseIntegrationTest {
 
     private void createFileInS3(String key) {
         s3Client.putObject(
-            PutObjectRequest.builder().bucket(bucketName).key(key).build(),
-            RequestBody.fromString("dummy content")
-        );
+                PutObjectRequest.builder().bucket(bucketName).key(key).build(),
+                RequestBody.fromString("dummy content"));
     }
 
     private boolean isFileExistsInS3(String key) {
         try {
-            s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(key).build());
+            s3Client.headObject(
+                    HeadObjectRequest.builder().bucket(bucketName).key(key).build());
             return true;
         } catch (NoSuchKeyException e) {
             return false;

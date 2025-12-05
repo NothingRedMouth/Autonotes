@@ -51,10 +51,8 @@ class NoteCleanupServiceTest {
         stuckNote.setStatus(NoteStatus.PROCESSING);
 
         when(noteRepository.findAllByStatusAndUpdatedAtBefore(
-            eq(NoteStatus.PROCESSING),
-            any(OffsetDateTime.class),
-            any(Pageable.class)))
-            .thenReturn(List.of(stuckNote));
+                        eq(NoteStatus.PROCESSING), any(OffsetDateTime.class), any(Pageable.class)))
+                .thenReturn(List.of(stuckNote));
 
         // Act
         noteCleanupService.markStuckNotesAsFailed();
@@ -66,23 +64,20 @@ class NoteCleanupServiceTest {
         verify(transactionTemplate, atLeastOnce()).execute(any());
 
         verify(noteRepository, times(1))
-            .findAllByStatusAndUpdatedAtBefore(
-                eq(NoteStatus.PROCESSING),
-                any(OffsetDateTime.class),
-                any(Pageable.class));
+                .findAllByStatusAndUpdatedAtBefore(
+                        eq(NoteStatus.PROCESSING), any(OffsetDateTime.class), any(Pageable.class));
     }
 
     @Test
     void markStuckNotesAsFailed_whenNoStuckNotes_shouldDoNothing() {
         // Arrange
         when(noteRepository.findAllByStatusAndUpdatedAtBefore(any(), any(), any(Pageable.class)))
-            .thenReturn(List.of());
+                .thenReturn(List.of());
 
         // Act
         noteCleanupService.markStuckNotesAsFailed();
 
         // Assert
-        verify(noteRepository, times(1))
-            .findAllByStatusAndUpdatedAtBefore(any(), any(), any(Pageable.class));
+        verify(noteRepository, times(1)).findAllByStatusAndUpdatedAtBefore(any(), any(), any(Pageable.class));
     }
 }

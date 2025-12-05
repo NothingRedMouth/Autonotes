@@ -52,11 +52,11 @@ class NoteServiceTest {
         user.setId(userId);
 
         LectureNote savedNote = LectureNote.builder()
-            .id(100L)
-            .user(user)
-            .title(title)
-            .fileStoragePath(filePath)
-            .build();
+                .id(100L)
+                .user(user)
+                .title(title)
+                .fileStoragePath(filePath)
+                .build();
 
         when(userRepository.getReferenceById(userId)).thenReturn(user);
         when(noteRepository.save(any(LectureNote.class))).thenReturn(savedNote);
@@ -68,25 +68,25 @@ class NoteServiceTest {
         // Assert
         assertThat(result).isEqualTo(savedNote);
 
-        verify(outboxEventRepository).save(argThat(event ->
-            event.getAggregateId().equals(100L) &&
-                event.getEventType().equals("NOTE_CREATED") &&
-                event.getPayload().equals("{\"noteId\":100}")
-        ));
+        verify(outboxEventRepository)
+                .save(argThat(event -> event.getAggregateId().equals(100L)
+                        && event.getEventType().equals("NOTE_CREATED")
+                        && event.getPayload().equals("{\"noteId\":100}")));
     }
 
     @Test
     void createNote_whenJsonFails_shouldThrowRuntimeException() throws Exception {
         // Arrange
         when(userRepository.getReferenceById(1L)).thenReturn(new User());
-        when(noteRepository.save(any())).thenReturn(LectureNote.builder().id(1L).fileStoragePath("path").build());
+        when(noteRepository.save(any()))
+                .thenReturn(LectureNote.builder().id(1L).fileStoragePath("path").build());
 
         when(objectMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("Error") {});
 
         // Act & Assert
-        assertThatThrownBy(() ->
-            noteService.createNote("Title", new MockMultipartFile("f", "c".getBytes()), "path", 1L)
-        ).isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to serialize event");
+        assertThatThrownBy(
+                        () -> noteService.createNote("Title", new MockMultipartFile("f", "c".getBytes()), "path", 1L))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to serialize event");
     }
 }

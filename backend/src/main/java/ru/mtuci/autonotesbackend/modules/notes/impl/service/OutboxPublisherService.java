@@ -28,9 +28,9 @@ public class OutboxPublisherService {
     @Scheduled(fixedDelayString = "${app.scheduling.outbox-interval-ms:2000}")
     @Transactional
     public void publishEvents() {
-        List<OutboxEvent> events = outboxEventRepository.findAll(
-            PageRequest.of(0, 50, Sort.by(Sort.Direction.ASC, "createdAt"))
-        ).getContent();
+        List<OutboxEvent> events = outboxEventRepository
+                .findAll(PageRequest.of(0, 50, Sort.by(Sort.Direction.ASC, "createdAt")))
+                .getContent();
 
         if (events.isEmpty()) {
             return;
@@ -53,11 +53,7 @@ public class OutboxPublisherService {
         if ("NOTE_CREATED".equals(event.getEventType())) {
             NoteProcessingEvent payload = objectMapper.readValue(event.getPayload(), NoteProcessingEvent.class);
 
-            rabbitTemplate.convertAndSend(
-                RabbitMqConfig.EXCHANGE_NOTES,
-                RabbitMqConfig.ROUTING_KEY_PROCESS,
-                payload
-            );
+            rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE_NOTES, RabbitMqConfig.ROUTING_KEY_PROCESS, payload);
         } else {
             log.warn("Unknown event type: {}", event.getEventType());
         }

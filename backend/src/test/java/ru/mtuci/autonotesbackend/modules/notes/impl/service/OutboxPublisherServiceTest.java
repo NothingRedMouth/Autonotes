@@ -43,28 +43,24 @@ class OutboxPublisherServiceTest {
         // Arrange
         String jsonPayload = "{\"noteId\":1}";
         OutboxEvent event = OutboxEvent.builder()
-            .id(10L)
-            .eventType("NOTE_CREATED")
-            .payload(jsonPayload)
-            .build();
+                .id(10L)
+                .eventType("NOTE_CREATED")
+                .payload(jsonPayload)
+                .build();
 
         NoteProcessingEvent mappedEvent = new NoteProcessingEvent(1L, "bucket", "path");
 
-        when(outboxEventRepository.findAll(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(event)));
+        when(outboxEventRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(event)));
 
-        when(objectMapper.readValue(jsonPayload, NoteProcessingEvent.class))
-            .thenReturn(mappedEvent);
+        when(objectMapper.readValue(jsonPayload, NoteProcessingEvent.class)).thenReturn(mappedEvent);
 
         // Act
         publisherService.publishEvents();
 
         // Assert
-        verify(rabbitTemplate).convertAndSend(
-            eq(RabbitMqConfig.EXCHANGE_NOTES),
-            eq(RabbitMqConfig.ROUTING_KEY_PROCESS),
-            eq(mappedEvent)
-        );
+        verify(rabbitTemplate)
+                .convertAndSend(
+                        eq(RabbitMqConfig.EXCHANGE_NOTES), eq(RabbitMqConfig.ROUTING_KEY_PROCESS), eq(mappedEvent));
 
         verify(outboxEventRepository).delete(event);
     }
@@ -72,8 +68,7 @@ class OutboxPublisherServiceTest {
     @Test
     void publishEvents_whenNoEvents_shouldDoNothing() {
         // Arrange
-        when(outboxEventRepository.findAll(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(outboxEventRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
 
         // Act
         publisherService.publishEvents();
@@ -86,17 +81,20 @@ class OutboxPublisherServiceTest {
     @Test
     void publishEvents_whenRabbitFails_shouldNotDeleteEvent() throws Exception {
         // Arrange
-        OutboxEvent event = OutboxEvent.builder().id(1L).eventType("NOTE_CREATED").payload("{}").build();
+        OutboxEvent event = OutboxEvent.builder()
+                .id(1L)
+                .eventType("NOTE_CREATED")
+                .payload("{}")
+                .build();
 
-        when(outboxEventRepository.findAll(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(event)));
+        when(outboxEventRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(event)));
 
         when(objectMapper.readValue(any(String.class), eq(NoteProcessingEvent.class)))
-            .thenReturn(new NoteProcessingEvent(1L, "b", "p"));
+                .thenReturn(new NoteProcessingEvent(1L, "b", "p"));
 
         doThrow(new RuntimeException("Rabbit is down"))
-            .when(rabbitTemplate)
-            .convertAndSend(any(String.class), any(String.class), any(Object.class));
+                .when(rabbitTemplate)
+                .convertAndSend(any(String.class), any(String.class), any(Object.class));
 
         // Act
         publisherService.publishEvents();

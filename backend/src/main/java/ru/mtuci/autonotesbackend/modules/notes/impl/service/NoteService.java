@@ -2,6 +2,7 @@ package ru.mtuci.autonotesbackend.modules.notes.impl.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,8 +19,6 @@ import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteReposi
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.OutboxEventRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 import ru.mtuci.autonotesbackend.modules.user.impl.repository.UserRepository;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -39,12 +38,12 @@ public class NoteService {
         User user = userRepository.getReferenceById(userId);
 
         LectureNote note = LectureNote.builder()
-            .title(title)
-            .user(user)
-            .originalFileName(file.getOriginalFilename())
-            .fileStoragePath(filePath)
-            .status(NoteStatus.PROCESSING)
-            .build();
+                .title(title)
+                .user(user)
+                .originalFileName(file.getOriginalFilename())
+                .fileStoragePath(filePath)
+                .status(NoteStatus.PROCESSING)
+                .build();
 
         LectureNote savedNote = noteRepository.save(note);
 
@@ -55,19 +54,16 @@ public class NoteService {
 
     private void saveOutboxEvent(LectureNote note) {
         try {
-            NoteProcessingEvent eventPayload = new NoteProcessingEvent(
-                note.getId(),
-                bucketName,
-                note.getFileStoragePath()
-            );
+            NoteProcessingEvent eventPayload =
+                    new NoteProcessingEvent(note.getId(), bucketName, note.getFileStoragePath());
 
             String jsonPayload = objectMapper.writeValueAsString(eventPayload);
 
             OutboxEvent outboxEvent = OutboxEvent.builder()
-                .aggregateId(note.getId())
-                .eventType("NOTE_CREATED")
-                .payload(jsonPayload)
-                .build();
+                    .aggregateId(note.getId())
+                    .eventType("NOTE_CREATED")
+                    .payload(jsonPayload)
+                    .build();
 
             outboxEventRepository.save(outboxEvent);
             log.info("Outbox event saved for noteId: {}", note.getId());
@@ -77,12 +73,11 @@ public class NoteService {
         }
     }
 
-
     @Transactional(readOnly = true)
     public List<NoteDto> findAllDtosByUserId(Long userId) {
         return noteRepository.findAllProjectedByUserId(userId).stream()
-            .map(this::mapProjectionToDto)
-            .toList();
+                .map(this::mapProjectionToDto)
+                .toList();
     }
 
     private NoteDto mapProjectionToDto(LectureNoteRepository.NoteProjection view) {
@@ -99,8 +94,8 @@ public class NoteService {
     @Transactional(readOnly = true)
     public LectureNote findByIdAndUserId(Long noteId, Long userId) {
         return noteRepository
-            .findByIdAndUserId(noteId, userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + noteId));
+                .findByIdAndUserId(noteId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + noteId));
     }
 
     @Transactional
