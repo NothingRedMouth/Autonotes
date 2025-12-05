@@ -34,7 +34,7 @@ public interface LectureNoteRepository extends JpaRepository<LectureNote, Long> 
     @Query(value = "SELECT * FROM lecture_notes WHERE deleted_at < :threshold", nativeQuery = true)
     List<LectureNote> findAllSoftDeletedBefore(@Param("threshold") OffsetDateTime threshold, Pageable pageable);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "DELETE FROM lecture_notes WHERE id = :id", nativeQuery = true)
     void hardDeleteById(@Param("id") Long id);
 
