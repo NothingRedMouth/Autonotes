@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -225,26 +223,25 @@ class NoteControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    void deleteNote_whenOwner_shouldDeleteNoteAndFile() throws Exception {
+    void deleteNote_whenOwner_shouldSoftDeleteNoteAndKeepFile() throws Exception {
         // Arrange
         User user = createUserInDb("delete-user", "delete@test.com");
-        LectureNote note = createNoteInDb("Note to Delete", "delete-user/to-be-deleted.jpg", user);
+        String filePath = "delete-user/to-be-deleted.jpg";
+        LectureNote note = createNoteInDb("Note to Delete", filePath, user);
         String token = loginAndGetToken("delete-user");
 
         // Act
         mockMvc.perform(delete("/api/v1/notes/" + note.getId()).header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
 
-        // Assert - DB Check
+        // Assert - DB Check (Logically Deleted)
         assertThat(noteRepository.findById(note.getId())).isEmpty();
 
-        // Assert - MinIO Check
-        ArgumentCaptor<DeleteObjectRequest> captor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
-        verify(s3Client, times(1)).deleteObject(captor.capture());
+        // Assert - DB Check (Physically Exists)
+        assertThat(noteRepository.existsByFileStoragePath(filePath)).isTrue();
 
-        DeleteObjectRequest capturedRequest = captor.getValue();
-        assertThat(capturedRequest.bucket()).isEqualTo(testBucketName);
-        assertThat(capturedRequest.key()).isEqualTo("delete-user/to-be-deleted.jpg");
+        // Assert - MinIO Check
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
     }
 
     @Test
