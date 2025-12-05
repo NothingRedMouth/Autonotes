@@ -1,5 +1,6 @@
 package ru.mtuci.autonotesbackend.security;
 
+import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 import lombok.Getter;
@@ -10,6 +11,9 @@ import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 
 @Getter
 public class SecurityUser implements UserDetails {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private final Long id;
     private final String username;
