@@ -66,7 +66,7 @@ class NoteFailureIntegrationTest extends BaseIntegrationTest {
 
         doThrow(new RuntimeException("Database Connection Error"))
                 .when(noteService)
-                .createNote(anyString(), any(), anyString(), eq(user.getId()));
+                .createNote(anyString(), any(), eq(user.getId()));
 
         int initialCount = countFilesInBucket();
 
