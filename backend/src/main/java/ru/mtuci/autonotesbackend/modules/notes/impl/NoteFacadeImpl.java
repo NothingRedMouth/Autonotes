@@ -4,7 +4,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.FileStorageFacade;
 import ru.mtuci.autonotesbackend.modules.notes.api.NoteFacade;
@@ -24,9 +23,9 @@ public class NoteFacadeImpl implements NoteFacade {
     private final NoteMapper noteMapper;
 
     @Override
-    @Transactional
     public NoteDto createNote(String title, MultipartFile file, Long userId) {
         String filePath = fileStorageFacade.save(file, userId);
+
         try {
             LectureNote newNote = noteService.createNote(title, file, filePath, userId);
             return noteMapper.toDto(newNote);
@@ -53,9 +52,11 @@ public class NoteFacadeImpl implements NoteFacade {
     }
 
     @Override
-    @Transactional
     public void deleteNote(Long noteId, Long userId) {
         String filePath = noteService.deleteByIdAndUserId(noteId, userId);
-        fileStorageFacade.delete(filePath);
+
+        if (filePath != null) {
+            fileStorageFacade.delete(filePath);
+        }
     }
 }
