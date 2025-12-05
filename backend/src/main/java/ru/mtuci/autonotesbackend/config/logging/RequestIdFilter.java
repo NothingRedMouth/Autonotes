@@ -19,7 +19,7 @@ public class RequestIdFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+        throws IOException, ServletException {
 
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -28,6 +28,8 @@ public class RequestIdFilter implements Filter {
 
         if (requestId == null || requestId.isBlank()) {
             requestId = UUID.randomUUID().toString();
+        } else {
+            requestId = requestId.replaceAll("[\\r\\n]", "");
         }
 
         try {
