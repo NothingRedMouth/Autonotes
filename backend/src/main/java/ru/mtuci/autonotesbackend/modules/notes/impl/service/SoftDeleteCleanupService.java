@@ -43,6 +43,8 @@ public class SoftDeleteCleanupService {
                     return false;
                 }
 
+                boolean progressMade = false;
+
                 for (LectureNote note : expiredNotes) {
                     try {
                         if (note.getFileStoragePath() != null) {
@@ -51,12 +53,14 @@ public class SoftDeleteCleanupService {
 
                         noteRepository.hardDeleteById(note.getId());
                         log.debug("Permanently deleted note ID: {}", note.getId());
+                        progressMade = true;
 
                     } catch (Exception e) {
                         log.error("Failed to cleanup note ID: {}", note.getId(), e);
                     }
                 }
-                return true;
+
+                return progressMade;
             }));
 
             if (hasMore) {
@@ -65,7 +69,7 @@ public class SoftDeleteCleanupService {
         }
 
         if (totalDeleted > 0) {
-            log.info("Completed permanent deletion. Total records removed: {}", totalDeleted);
+            log.info("Completed permanent deletion. Total records removed: approx {}", totalDeleted);
         }
     }
 }
