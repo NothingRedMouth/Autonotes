@@ -1,5 +1,6 @@
 package ru.mtuci.autonotesbackend.exception;
 
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import io.jsonwebtoken.JwtException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -97,6 +98,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleInvalidFileFormat(InvalidFileFormatException ex) {
         log.warn("Invalid file format: {}", ex.getMessage());
         return createErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(RequestNotPermitted.class)
+    public ResponseEntity<ErrorResponseDto> handleRateLimitException(RequestNotPermitted ex) {
+        log.warn("Rate limit exceeded: {}", ex.getMessage());
+        return createErrorResponse(HttpStatus.TOO_MANY_REQUESTS, "Too many requests. Please try again later.");
     }
 
     @ExceptionHandler(Exception.class)
