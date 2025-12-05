@@ -43,8 +43,7 @@ public class NoteFacadeImpl implements NoteFacade {
 
     @Override
     public List<NoteDto> findAllUserNotes(Long userId) {
-        List<LectureNote> notes = noteService.findAllByUserId(userId);
-        return noteMapper.toDtoList(notes);
+        return noteService.findAllDtosByUserId(userId);
     }
 
     @Override
