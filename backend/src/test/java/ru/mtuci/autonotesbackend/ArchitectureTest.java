@@ -32,7 +32,8 @@ public class ArchitectureTest {
                         "ru.mtuci.autonotesbackend.exception..",
                         "lombok..",
                         "org.slf4j..",
-                        "io.swagger.v3.oas.annotations..")
+                        "io.swagger.v3.oas.annotations..",
+                        "io.github.resilience4j..")
                 .check(importedClasses);
     }
 

@@ -1,5 +1,6 @@
 package ru.mtuci.autonotesbackend.app.web.auth;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class AuthController implements AuthResource {
 
     @Override
     @PostMapping("/login")
+    @RateLimiter(name = "loginLimiter")
     public ResponseEntity<AuthResponseDto> login(@Valid @RequestBody AuthRequestDto request) {
         return ResponseEntity.ok(userApi.login(request));
     }

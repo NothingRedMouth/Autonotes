@@ -1,19 +1,22 @@
 package ru.mtuci.autonotesbackend.modules.notes.impl.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import ru.mtuci.autonotesbackend.config.RabbitMqConfig;
 import ru.mtuci.autonotesbackend.exception.ResourceNotFoundException;
+import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDto;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
+import ru.mtuci.autonotesbackend.modules.notes.impl.domain.OutboxEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.event.NoteProcessingEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
+import ru.mtuci.autonotesbackend.modules.notes.impl.repository.OutboxEventRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 import ru.mtuci.autonotesbackend.modules.user.impl.repository.UserRepository;
 
@@ -24,7 +27,8 @@ public class NoteService {
 
     private final LectureNoteRepository noteRepository;
     private final UserRepository userRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Value("${aws.s3.bucket}")
     private String bucketName;
@@ -43,25 +47,48 @@ public class NoteService {
 
         LectureNote savedNote = noteRepository.save(note);
 
-        sendProcessingEvent(savedNote);
+        saveOutboxEvent(savedNote);
 
         return savedNote;
     }
 
-    private void sendProcessingEvent(LectureNote note) {
+    private void saveOutboxEvent(LectureNote note) {
         try {
-            NoteProcessingEvent event = new NoteProcessingEvent(note.getId(), bucketName, note.getFileStoragePath());
+            NoteProcessingEvent eventPayload =
+                    new NoteProcessingEvent(note.getId(), bucketName, note.getFileStoragePath());
 
-            rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE_NOTES, RabbitMqConfig.ROUTING_KEY_PROCESS, event);
-            log.info("Event sent to RabbitMQ for noteId: {}", note.getId());
-        } catch (Exception e) {
-            log.error("Failed to send event to RabbitMQ for noteId: {}. Fallback to scheduler.", note.getId(), e);
+            String jsonPayload = objectMapper.writeValueAsString(eventPayload);
+
+            OutboxEvent outboxEvent = OutboxEvent.builder()
+                    .aggregateId(note.getId())
+                    .eventType("NOTE_CREATED")
+                    .payload(jsonPayload)
+                    .build();
+
+            outboxEventRepository.save(outboxEvent);
+            log.info("Outbox event saved for noteId: {}", note.getId());
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize event payload", e);
         }
     }
 
     @Transactional(readOnly = true)
-    public List<LectureNote> findAllByUserId(Long userId) {
-        return noteRepository.findByUserId(userId);
+    public List<NoteDto> findAllDtosByUserId(Long userId) {
+        return noteRepository.findAllProjectedByUserId(userId).stream()
+                .map(this::mapProjectionToDto)
+                .toList();
+    }
+
+    private NoteDto mapProjectionToDto(LectureNoteRepository.NoteProjection view) {
+        NoteDto dto = new NoteDto();
+        dto.setId(view.getId());
+        dto.setUserId(view.getUserId());
+        dto.setTitle(view.getTitle());
+        dto.setOriginalFileName(view.getOriginalFileName());
+        dto.setStatus(view.getStatus());
+        dto.setCreatedAt(view.getCreatedAt());
+        return dto;
     }
 
     @Transactional(readOnly = true)

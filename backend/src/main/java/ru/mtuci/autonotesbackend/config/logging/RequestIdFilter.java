@@ -28,6 +28,8 @@ public class RequestIdFilter implements Filter {
 
         if (requestId == null || requestId.isBlank()) {
             requestId = UUID.randomUUID().toString();
+        } else {
+            requestId = requestId.replaceAll("[\\r\\n]", "");
         }
 
         try {
