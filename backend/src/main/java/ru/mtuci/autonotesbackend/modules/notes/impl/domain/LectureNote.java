@@ -34,7 +34,7 @@ public class LectureNote {
     @Column(name = "original_file_name", nullable = false)
     private String originalFileName;
 
-    @Column(name = "file_storage_path", nullable = false, unique = true)
+    @Column(name = "file_storage_path", nullable = false)
     private String fileStoragePath;
 
     @Enumerated(EnumType.STRING)

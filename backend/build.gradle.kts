@@ -8,6 +8,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.spotbugs") version "6.2.4"
     id("com.diffplug.spotless") version "6.25.0"
+    id("jacoco")
 }
 
 group = "ru.mtuci"
@@ -81,9 +82,61 @@ dependencies {
     "agent"("io.opentelemetry.javaagent:opentelemetry-javaagent:2.22.0")
 }
 
+// =============================================
+// Базовая настройка тестов
+// =============================================
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
 }
+
+// =============================================
+// JaCoCo
+// =============================================
+
+jacoco {
+    toolVersion = "0.8.14"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    reports.html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/html"))
+    reports.xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacoco.xml"))
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal()
+            }
+            excludes = listOf(
+                "**/*Application*",
+                "**/*Config*",
+                "**/*Dto*",
+                "**/*Request*",
+                "**/*Response*",
+            )
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn("spotbugsMain", "spotbugsTest", "spotlessCheck")
+    finalizedBy(tasks.jacocoTestReport, tasks.jacocoTestCoverageVerification)
+}
+
+// =============================================
+// SpotBugs
+// =============================================
 
 spotbugs {
     effort = Effort.MAX
@@ -100,6 +153,10 @@ tasks.withType<SpotBugsTask> {
         required = false
     }
 }
+
+// =============================================
+// Spotless
+// =============================================
 
 spotless {
     format("misc") {
@@ -126,9 +183,9 @@ spotless {
     }
 }
 
-tasks.named("check") {
-    dependsOn("spotbugsMain", "spotbugsTest", "spotlessCheck")
-}
+// =============================================
+// OpenTelemetry
+// =============================================
 
 tasks.register<Copy>("copyOtelAgent") {
     from(configurations["agent"])
