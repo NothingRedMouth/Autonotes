@@ -1,21 +1,20 @@
 name: Backend CI (Java/Gradle)
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
 
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./backend
@@ -23,32 +22,44 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set up JDK
+      - name: Set up JDK 24
         uses: actions/setup-java@v4
         with:
           java-version: '24'
           distribution: 'temurin'
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('backend/**/*.gradle*', 'backend/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          cache: 'gradle'
 
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+      - name: Build & run tests
+        run: ./gradlew build --no-daemon --info
 
-      - name: Upload test reports on failure
-        if: failure()
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: 'backend/build/test-results/test/*.xml'
+          working-directory: backend
+
+      - name: Add coverage to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.7.1
+        if: success()
+        with:
+          paths: backend/build/reports/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
+          title: 'Code Coverage Report'
+          update-comment: true
+
+      - name: Upload HTML Coverage Report
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
-          path: backend/build/test-results/test/
+          name: jacoco-html-report
+          path: backend/build/reports/jacoco/html/

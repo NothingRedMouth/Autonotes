@@ -95,4 +95,48 @@ class LectureNoteRepositoryTest extends BaseIntegrationTest {
                 jdbcTemplate.queryForObject("SELECT count(*) FROM lecture_notes WHERE id = ?", Integer.class, noteId);
         assertThat(count).isEqualTo(0);
     }
+
+    @Test
+    void shouldAllowReuseOfPath_AfterSoftDelete() {
+        // Arrange
+        User user = userRepository.save(User.builder()
+                .username("reuse_user")
+                .email("reuse@test.com")
+                .password("pass")
+                .build());
+
+        String sharedPath = "common/file.jpg";
+
+        LectureNote note1 = lectureNoteRepository.save(LectureNote.builder()
+                .user(user)
+                .title("Note 1")
+                .originalFileName("1.jpg")
+                .fileStoragePath(sharedPath)
+                .status(NoteStatus.COMPLETED)
+                .build());
+
+        lectureNoteRepository.delete(note1);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act
+        LectureNote note2 = LectureNote.builder()
+                .user(user)
+                .title("Note 2 - Reincarnation")
+                .originalFileName("2.jpg")
+                .fileStoragePath(sharedPath)
+                .status(NoteStatus.PROCESSING)
+                .build();
+
+        LectureNote savedNote2 = lectureNoteRepository.save(note2);
+        entityManager.flush();
+
+        // Assert
+        assertThat(savedNote2.getId()).isNotEqualTo(note1.getId());
+        assertThat(savedNote2.getFileStoragePath()).isEqualTo(sharedPath);
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM lecture_notes WHERE file_storage_path = ?", Integer.class, sharedPath);
+        assertThat(count).isEqualTo(2);
+    }
 }
