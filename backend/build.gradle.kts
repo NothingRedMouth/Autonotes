@@ -24,6 +24,7 @@ configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
     }
+    val agent by creating
 }
 
 repositories {
@@ -54,11 +55,11 @@ dependencies {
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:url-connection-client")
     implementation("commons-io:commons-io:2.20.0")
-    implementation("org.apache.commons:commons-compress:1.27.1")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.apache.tika:tika-core:2.9.1")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
     compileOnly("org.projectlombok:lombok:1.18.42")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
@@ -76,6 +77,8 @@ dependencies {
     testImplementation("org.testcontainers:rabbitmq")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    "agent"("io.opentelemetry.javaagent:opentelemetry-javaagent:2.22.0")
 }
 
 tasks.withType<Test> {
@@ -125,4 +128,21 @@ spotless {
 
 tasks.named("check") {
     dependsOn("spotbugsMain", "spotbugsTest", "spotlessCheck")
+}
+
+tasks.register<Copy>("copyOtelAgent") {
+    from(configurations["agent"])
+    into(layout.buildDirectory.dir("otel-agent"))
+    rename { "opentelemetry-javaagent.jar" }
+}
+
+tasks.bootJar {
+    dependsOn("copyOtelAgent")
+}
+
+tasks.withType<org.springframework.boot.gradle.tasks.run.BootRun> {
+    dependsOn("copyOtelAgent")
+    jvmArgs = listOf(
+        "-javaagent:${layout.buildDirectory.dir("otel-agent/opentelemetry-javaagent.jar").get().asFile.absolutePath}",
+    )
 }

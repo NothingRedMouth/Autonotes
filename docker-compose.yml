@@ -61,6 +61,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     ports:
       - "${APP_PORT}:8080"
     environment:
@@ -90,6 +92,29 @@ services:
       - app.scheduling.cleanup-retention-hours=${APP_S3_RETENTION_HOURS}
       - app.notes.soft-delete-retention-days=${APP_SOFT_DELETE_RETENTION_DAYS}
       - app.scheduling.soft-delete-cleanup-cron=${APP_SOFT_DELETE_CLEANUP_CRON}
+
+      - OTEL_SERVICE_NAME=autonotes-backend
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_INSTRUMENTATION_SPRING_WEB_MVC_ENABLED=true
+      - OTEL_INSTRUMENTATION_JDBC_ENABLED=true
+      - OTEL_INSTRUMENTATION_RABBITMQ_ENABLED=true
+      - OTEL_TRACES_SAMPLER=always_on
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: autonotes-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+      - "9411:9411"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
 
 volumes:
   postgres-data:

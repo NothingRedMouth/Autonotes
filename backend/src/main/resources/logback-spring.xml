@@ -7,7 +7,7 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
-                %clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} --- [%15.15t] %clr([%X{requestId:-NO-ID}]){cyan} %clr([%X{user:-ANONYMOUS}]){yellow} %clr(%-40.40logger{39}){cyan} : %m%n
+                %clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %-5level %clr(${PID:- }){magenta} --- [%15.15t] %clr([%X{traceId:-},%X{spanId:-}]){yellow} %clr(%-40.40logger{39}){cyan} : %m%n
             </pattern>
             <charset>UTF-8</charset>
         </encoder>
