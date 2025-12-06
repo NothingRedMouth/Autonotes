@@ -12,14 +12,15 @@ RUN ./gradlew dependencies --no-daemon || true
 
 COPY src ./src
 
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew copyOtelAgent bootJar --no-daemon
 
 FROM eclipse-temurin:24-jre-noble
 
 WORKDIR /app
 
 COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/build/otel-agent/opentelemetry-javaagent.jar otel-agent.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-javaagent:/app/otel-agent.jar", "-jar", "app.jar"]
