@@ -43,7 +43,6 @@ jobs:
         if: always()
         with:
           report_paths: 'backend/build/test-results/test/*.xml'
-          working-directory: backend
 
       - name: Add coverage to PR
         id: jacoco
