@@ -1,3 +1,5 @@
+# --- docker-compose.yml ---
+
 services:
   db:
     image: postgres:16-alpine
@@ -115,6 +117,15 @@ services:
       - "4318:4318"
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+
+  frontend:
+    build: ./frontend
+    container_name: autonotes-frontend
+    depends_on:
+      - app
+    ports:
+      - "3000:80"
+    restart: always
 
 volumes:
   postgres-data:
