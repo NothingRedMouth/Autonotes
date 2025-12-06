@@ -63,3 +63,4 @@ Desktop.ini
 !src/test/resources/**/*.json
 /docs/
 /src/main/resources/application-dev.properties
+*.jpg
