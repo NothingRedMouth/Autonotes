@@ -50,7 +50,7 @@ jobs:
         uses: madrapps/jacoco-report@v1.7.1
         if: success()
         with:
-          paths: backend/build/reports/jacoco/test/jacocoTestReport.xml
+          paths: backend/build/reports/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 0
           min-coverage-changed-files: 0
@@ -62,4 +62,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-html-report
-          path: backend/build/reports/jacoco/test/html/
+          path: backend/build/reports/jacoco/html/
