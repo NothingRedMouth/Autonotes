@@ -128,8 +128,8 @@ class NoteServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessage("DB Error");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("DB Error");
 
         verify(fileStorageFacade).save(file, userId);
         verify(fileStorageFacade).delete(filePath);
@@ -145,12 +145,13 @@ class NoteServiceTest {
         when(fileStorageFacade.save(file, userId)).thenReturn(filePath);
 
         doThrow(new RuntimeException("Failed to serialize event payload", new JsonProcessingException("... ") {}))
-                .when(transactionTemplate).execute(any());
+                .when(transactionTemplate)
+                .execute(any());
 
         // Act & Assert
         assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessage("Failed to serialize event payload");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Failed to serialize event payload");
 
         verify(fileStorageFacade).delete(filePath);
     }

@@ -30,10 +30,10 @@ class UserServiceTest {
     private UserService userService;
 
     private final RegistrationRequestDto requestDto = RegistrationRequestDto.builder()
-        .username("newuser")
-        .email("new@mail.com")
-        .password("password123")
-        .build();
+            .username("newuser")
+            .email("new@mail.com")
+            .password("password123")
+            .build();
 
     @Test
     void createUser_whenEmailAlreadyExists_shouldThrowException() {
@@ -43,8 +43,8 @@ class UserServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> userService.createUser(requestDto))
-            .isInstanceOf(UserAlreadyExistsException.class)
-            .hasMessage("Email is already taken");
+                .isInstanceOf(UserAlreadyExistsException.class)
+                .hasMessage("Email is already taken");
 
         verify(userRepository, never()).saveAndFlush(any());
     }
@@ -56,11 +56,11 @@ class UserServiceTest {
         when(userRepository.findByEmail(requestDto.getEmail())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("hashed_password");
         when(userRepository.saveAndFlush(any(User.class)))
-            .thenThrow(new DataIntegrityViolationException("Unique constraint violation"));
+                .thenThrow(new DataIntegrityViolationException("Unique constraint violation"));
 
         // Act & Assert
         assertThatThrownBy(() -> userService.createUser(requestDto))
-            .isInstanceOf(UserAlreadyExistsException.class)
-            .hasMessage("User with this username or email already exists");
+                .isInstanceOf(UserAlreadyExistsException.class)
+                .hasMessage("User with this username or email already exists");
     }
 }
