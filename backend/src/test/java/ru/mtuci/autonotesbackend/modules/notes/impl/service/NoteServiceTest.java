@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -110,6 +111,47 @@ class NoteServiceTest {
         assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("DB Error");
+
+        verify(fileStorageFacade).delete(filePath);
+    }
+
+    @Test
+    void createNote_whenDbAndRollbackFail_shouldPropagateDbError() {
+        // Arrange
+        Long userId = 1L;
+        String filePath = "1/rollback-fail.jpg";
+        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", new byte[0]);
+
+        when(fileStorageFacade.save(file, userId)).thenReturn(filePath);
+        doThrow(new RuntimeException("DB Error")).when(transactionTemplate).execute(any());
+        doThrow(new RuntimeException("S3 is down")).when(fileStorageFacade).delete(filePath);
+
+        // Act & Assert
+        assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("DB Error");
+
+        verify(fileStorageFacade).save(file, userId);
+        verify(fileStorageFacade).delete(filePath);
+    }
+
+    @Test
+    void createNote_whenEventSerializationFails_shouldRollbackFileAndThrowException() throws Exception {
+        // Arrange
+        Long userId = 1L;
+        String filePath = "1/serialization-fail.jpg";
+        MockMultipartFile file = new MockMultipartFile("file", "original.jpg", "image/jpeg", new byte[0]);
+
+        when(fileStorageFacade.save(file, userId)).thenReturn(filePath);
+
+        doThrow(new RuntimeException("Failed to serialize event payload", new JsonProcessingException("... ") {}))
+                .when(transactionTemplate)
+                .execute(any());
+
+        // Act & Assert
+        assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Failed to serialize event payload");
 
         verify(fileStorageFacade).delete(filePath);
     }
