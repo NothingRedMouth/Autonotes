@@ -2,6 +2,8 @@ package ru.mtuci.autonotesbackend.modules.notes.impl.domain;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
@@ -31,11 +33,10 @@ public class LectureNote {
 
     private String title;
 
-    @Column(name = "original_file_name", nullable = false)
-    private String originalFileName;
-
-    @Column(name = "file_storage_path", nullable = false)
-    private String fileStoragePath;
+    @OneToMany(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    @Builder.Default
+    private List<NoteImage> images = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -57,4 +58,9 @@ public class LectureNote {
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
+
+    public void addImage(NoteImage image) {
+        images.add(image);
+        image.setNote(this);
+    }
 }

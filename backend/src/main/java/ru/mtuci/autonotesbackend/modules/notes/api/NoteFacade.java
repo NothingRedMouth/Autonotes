@@ -6,7 +6,7 @@ import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDetailDto;
 import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDto;
 
 public interface NoteFacade {
-    NoteDto createNote(String title, MultipartFile file, Long userId);
+    NoteDto createNote(String title, List<MultipartFile> files, Long userId);
 
     List<NoteDto> findAllUserNotes(Long userId);
 

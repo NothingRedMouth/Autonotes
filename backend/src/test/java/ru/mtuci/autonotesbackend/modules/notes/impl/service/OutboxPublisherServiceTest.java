@@ -48,7 +48,7 @@ class OutboxPublisherServiceTest {
                 .payload(jsonPayload)
                 .build();
 
-        NoteProcessingEvent mappedEvent = new NoteProcessingEvent(1L, "bucket", "path");
+        NoteProcessingEvent mappedEvent = new NoteProcessingEvent(1L, "bucket", List.of("path"));
 
         when(outboxEventRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(event)));
 
@@ -90,7 +90,7 @@ class OutboxPublisherServiceTest {
         when(outboxEventRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(event)));
 
         when(objectMapper.readValue(any(String.class), eq(NoteProcessingEvent.class)))
-                .thenReturn(new NoteProcessingEvent(1L, "b", "p"));
+                .thenReturn(new NoteProcessingEvent(1L, "b", List.of("p")));
 
         doThrow(new RuntimeException("Rabbit is down"))
                 .when(rabbitTemplate)
