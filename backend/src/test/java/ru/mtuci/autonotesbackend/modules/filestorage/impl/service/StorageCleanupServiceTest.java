@@ -1,7 +1,5 @@
 package ru.mtuci.autonotesbackend.modules.filestorage.impl.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,8 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.util.ReflectionTestUtils;
 import ru.mtuci.autonotesbackend.BaseIntegrationTest;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
+import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteImage;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
+import ru.mtuci.autonotesbackend.modules.notes.impl.repository.NoteImageRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 import ru.mtuci.autonotesbackend.modules.user.impl.repository.UserRepository;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class StorageCleanupServiceTest extends BaseIntegrationTest {
 
@@ -29,6 +30,9 @@ class StorageCleanupServiceTest extends BaseIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private NoteImageRepository noteImageRepository;
 
     @Autowired
     private LectureNoteRepository noteRepository;
@@ -74,16 +78,21 @@ class StorageCleanupServiceTest extends BaseIntegrationTest {
         String linkedKey = "linked-file.txt";
         createFileInS3(linkedKey);
 
-        noteRepository.save(LectureNote.builder()
+        LectureNote note = LectureNote.builder()
                 .user(user)
                 .title("Linked Note")
+                .status(NoteStatus.COMPLETED)
+                .build();
+
+        note.addImage(NoteImage.builder()
                 .originalFileName("orig.txt")
                 .fileStoragePath(linkedKey)
-                .status(NoteStatus.COMPLETED)
+                .orderIndex(0)
                 .build());
 
-        ReflectionTestUtils.setField(cleanupService, "retentionHours", 0);
+        noteRepository.save(note);
 
+        ReflectionTestUtils.setField(cleanupService, "retentionHours", 0);
         cleanupService.cleanupOrphanedFiles();
 
         assertThat(isFileExistsInS3(linkedKey)).isTrue();
