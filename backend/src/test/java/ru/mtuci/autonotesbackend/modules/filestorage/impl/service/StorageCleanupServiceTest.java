@@ -1,5 +1,7 @@
 package ru.mtuci.autonotesbackend.modules.filestorage.impl.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class StorageCleanupServiceTest extends BaseIntegrationTest {
 
