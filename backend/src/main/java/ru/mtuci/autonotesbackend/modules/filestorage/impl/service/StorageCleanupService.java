@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
+import ru.mtuci.autonotesbackend.modules.notes.impl.repository.NoteImageRepository;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -23,7 +23,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 public class StorageCleanupService {
 
     private final S3Client s3Client;
-    private final LectureNoteRepository noteRepository;
+    private final NoteImageRepository noteImageRepository;
 
     @Value("${aws.s3.bucket}")
     private String bucketName;
@@ -67,7 +67,7 @@ public class StorageCleanupService {
                         .toList();
 
                 if (!candidatesToCheck.isEmpty()) {
-                    Set<String> existingFiles = noteRepository.findExistingPaths(candidatesToCheck);
+                    Set<String> existingFiles = noteImageRepository.findExistingPaths(candidatesToCheck);
 
                     List<String> orphans = candidatesToCheck.stream()
                             .filter(key -> !existingFiles.contains(key))

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.FileStorageFacade;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
+import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteImage;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
 
 @Service
@@ -35,7 +36,7 @@ public class SoftDeleteCleanupService {
         int totalDeleted = 0;
 
         while (hasMore) {
-            hasMore = Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            hasMore = Boolean.TRUE.equals(transactionTemplate.execute(ignored -> {
                 List<LectureNote> expiredNotes =
                         noteRepository.findAllSoftDeletedBefore(threshold, PageRequest.of(0, batchSize));
 
@@ -47,13 +48,28 @@ public class SoftDeleteCleanupService {
 
                 for (LectureNote note : expiredNotes) {
                     try {
-                        if (note.getFileStoragePath() != null) {
-                            fileStorageFacade.delete(note.getFileStoragePath());
+                        boolean allFilesDeleted = true;
+
+                        if (note.getImages() != null) {
+                            for (NoteImage image : note.getImages()) {
+                                try {
+                                    fileStorageFacade.delete(image.getFileStoragePath());
+                                } catch (Exception e) {
+                                    log.warn(
+                                            "Failed to delete file from S3: {}. Skipping DB deletion for note {}.",
+                                            image.getFileStoragePath(),
+                                            note.getId(),
+                                            e);
+                                    allFilesDeleted = false;
+                                }
+                            }
                         }
 
-                        noteRepository.hardDeleteById(note.getId());
-                        log.debug("Permanently deleted note ID: {}", note.getId());
-                        progressMade = true;
+                        if (allFilesDeleted) {
+                            noteRepository.hardDeleteById(note.getId());
+                            log.debug("Permanently deleted note ID: {}", note.getId());
+                            progressMade = true;
+                        }
 
                     } catch (Exception e) {
                         log.error("Failed to cleanup note ID: {}", note.getId(), e);
