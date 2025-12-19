@@ -25,6 +25,7 @@ class NoteMapperTest {
                 .id(1L)
                 .user(user)
                 .title("Math")
+                .originalFileName("math.jpg")
                 .status(NoteStatus.COMPLETED)
                 .createdAt(OffsetDateTime.now())
                 .build();

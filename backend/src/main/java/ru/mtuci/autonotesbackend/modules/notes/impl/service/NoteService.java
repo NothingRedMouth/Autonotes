@@ -2,7 +2,6 @@ package ru.mtuci.autonotesbackend.modules.notes.impl.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,14 +12,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import ru.mtuci.autonotesbackend.exception.ResourceNotFoundException;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.FileStorageFacade;
-import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.InvalidFileFormatException;
 import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDto;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
-import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteImage;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.OutboxEvent;
 import ru.mtuci.autonotesbackend.modules.notes.impl.event.NoteProcessingEvent;
-import ru.mtuci.autonotesbackend.modules.notes.impl.mapper.NoteMapper;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.OutboxEventRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
@@ -37,81 +33,46 @@ public class NoteService {
     private final ObjectMapper objectMapper;
     private final FileStorageFacade fileStorageFacade;
     private final TransactionTemplate transactionTemplate;
-    private final NoteMapper noteMapper;
 
     @Value("${aws.s3.bucket}")
     private String bucketName;
 
-    public LectureNote createNote(String title, List<MultipartFile> files, Long userId) {
-        if (files == null || files.isEmpty()) {
-            throw new InvalidFileFormatException("At least one image file is required.");
-        }
-
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                throw new InvalidFileFormatException("File '" + file.getOriginalFilename() + "' is empty.");
-            }
-        }
-
-        List<String> uploadedPaths = new ArrayList<>();
+    public LectureNote createNote(String title, MultipartFile file, Long userId) {
+        String filePath = fileStorageFacade.save(file, userId);
 
         try {
-            for (MultipartFile file : files) {
-                String path = fileStorageFacade.save(file, userId);
-                uploadedPaths.add(path);
-            }
-        } catch (Exception e) {
-            log.error("Error during file upload sequence. Rolling back {} uploaded files.", uploadedPaths.size(), e);
-            rollbackS3Uploads(uploadedPaths);
-            throw e;
-        }
-
-        try {
-            return transactionTemplate.execute(ignored -> {
+            return transactionTemplate.execute(status -> {
                 User user = userRepository.getReferenceById(userId);
 
                 LectureNote note = LectureNote.builder()
                         .title(title)
                         .user(user)
+                        .originalFileName(file.getOriginalFilename())
+                        .fileStoragePath(filePath)
                         .status(NoteStatus.PROCESSING)
                         .build();
 
-                for (int i = 0; i < files.size(); i++) {
-                    NoteImage image = NoteImage.builder()
-                            .fileStoragePath(uploadedPaths.get(i))
-                            .originalFileName(files.get(i).getOriginalFilename())
-                            .orderIndex(i)
-                            .build();
-                    note.addImage(image);
-                }
-
                 LectureNote savedNote = noteRepository.save(note);
-
-                saveOutboxEvent(savedNote, uploadedPaths);
+                saveOutboxEvent(savedNote);
 
                 return savedNote;
             });
 
         } catch (Exception e) {
-            log.error("Database transaction failed. Rolling back S3 uploads.", e);
-            rollbackS3Uploads(uploadedPaths);
+            log.error("Database transaction failed for file: {}. Rolling back S3 upload.", filePath, e);
+            try {
+                fileStorageFacade.delete(filePath);
+            } catch (Exception deleteEx) {
+                log.error("Failed to rollback file: {}", filePath, deleteEx);
+            }
             throw e;
         }
     }
 
-    private void rollbackS3Uploads(List<String> paths) {
-        for (String path : paths) {
-            try {
-                fileStorageFacade.delete(path);
-            } catch (Exception ex) {
-                log.error("Failed to delete file during rollback: {}", path, ex);
-            }
-        }
-    }
-
-    private void saveOutboxEvent(LectureNote note, List<String> filePaths) {
+    private void saveOutboxEvent(LectureNote note) {
         try {
-            NoteProcessingEvent eventPayload = new NoteProcessingEvent(note.getId(), bucketName, filePaths);
+            NoteProcessingEvent eventPayload =
+                    new NoteProcessingEvent(note.getId(), bucketName, note.getFileStoragePath());
 
             String jsonPayload = objectMapper.writeValueAsString(eventPayload);
 
@@ -131,8 +92,20 @@ public class NoteService {
 
     @Transactional(readOnly = true)
     public List<NoteDto> findAllDtosByUserId(Long userId) {
-        List<LectureNote> notes = noteRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        return noteMapper.toDtoList(notes);
+        return noteRepository.findAllProjectedByUserId(userId).stream()
+                .map(this::mapProjectionToDto)
+                .toList();
+    }
+
+    private NoteDto mapProjectionToDto(LectureNoteRepository.NoteProjection view) {
+        NoteDto dto = new NoteDto();
+        dto.setId(view.getId());
+        dto.setUserId(view.getUserId());
+        dto.setTitle(view.getTitle());
+        dto.setOriginalFileName(view.getOriginalFileName());
+        dto.setStatus(view.getStatus());
+        dto.setCreatedAt(view.getCreatedAt());
+        return dto;
     }
 
     @Transactional(readOnly = true)

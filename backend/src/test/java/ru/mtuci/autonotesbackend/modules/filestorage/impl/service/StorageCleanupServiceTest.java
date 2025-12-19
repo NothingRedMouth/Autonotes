@@ -9,10 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.util.ReflectionTestUtils;
 import ru.mtuci.autonotesbackend.BaseIntegrationTest;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
-import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteImage;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
-import ru.mtuci.autonotesbackend.modules.notes.impl.repository.NoteImageRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 import ru.mtuci.autonotesbackend.modules.user.impl.repository.UserRepository;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -31,9 +29,6 @@ class StorageCleanupServiceTest extends BaseIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private NoteImageRepository noteImageRepository;
 
     @Autowired
     private LectureNoteRepository noteRepository;
@@ -79,21 +74,16 @@ class StorageCleanupServiceTest extends BaseIntegrationTest {
         String linkedKey = "linked-file.txt";
         createFileInS3(linkedKey);
 
-        LectureNote note = LectureNote.builder()
+        noteRepository.save(LectureNote.builder()
                 .user(user)
                 .title("Linked Note")
-                .status(NoteStatus.COMPLETED)
-                .build();
-
-        note.addImage(NoteImage.builder()
                 .originalFileName("orig.txt")
                 .fileStoragePath(linkedKey)
-                .orderIndex(0)
+                .status(NoteStatus.COMPLETED)
                 .build());
 
-        noteRepository.save(note);
-
         ReflectionTestUtils.setField(cleanupService, "retentionHours", 0);
+
         cleanupService.cleanupOrphanedFiles();
 
         assertThat(isFileExistsInS3(linkedKey)).isTrue();

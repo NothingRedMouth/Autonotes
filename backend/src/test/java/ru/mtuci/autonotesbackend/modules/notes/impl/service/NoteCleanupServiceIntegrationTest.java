@@ -40,12 +40,16 @@ class NoteCleanupServiceIntegrationTest extends BaseIntegrationTest {
         LectureNote freshNote = noteRepository.save(LectureNote.builder()
                 .user(user)
                 .title("Fresh Note")
+                .originalFileName("fresh.jpg")
+                .fileStoragePath("1/fresh.jpg")
                 .status(NoteStatus.PROCESSING)
                 .build());
 
         LectureNote oldNote = noteRepository.save(LectureNote.builder()
                 .user(user)
                 .title("Stuck Note")
+                .originalFileName("stuck.jpg")
+                .fileStoragePath("1/stuck.jpg")
                 .status(NoteStatus.PROCESSING)
                 .build());
 

@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.mtuci.autonotesbackend.BaseIntegrationTest;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.FileStorageFacade;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
-import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteImage;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
@@ -147,19 +146,13 @@ class SoftDeleteCleanupServiceIntegrationTest extends BaseIntegrationTest {
     }
 
     private LectureNote createSoftDeletedNote(User user, String title, String path, int daysAgo) {
-        LectureNote note = LectureNote.builder()
+        LectureNote note = noteRepository.save(LectureNote.builder()
                 .user(user)
                 .title(title)
-                .status(NoteStatus.COMPLETED)
-                .build();
-
-        note.addImage(NoteImage.builder()
                 .originalFileName("test.jpg")
                 .fileStoragePath(path)
-                .orderIndex(0)
+                .status(NoteStatus.COMPLETED)
                 .build());
-
-        noteRepository.save(note);
 
         OffsetDateTime pastDate = OffsetDateTime.now().minusDays(daysAgo);
         jdbcTemplate.update("UPDATE lecture_notes SET deleted_at = ? WHERE id = ?", pastDate, note.getId());
