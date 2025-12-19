@@ -1,7 +1,10 @@
 package ru.mtuci.autonotesbackend.modules.notes.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -33,19 +36,20 @@ class NoteFacadeImplTest {
         // Arrange
         String title = "Test";
         MultipartFile file = mock(MultipartFile.class);
+        List<MultipartFile> files = List.of(file);
         Long userId = 1L;
         LectureNote noteEntity = new LectureNote();
         NoteDto expectedDto = new NoteDto();
 
-        when(noteService.createNote(title, file, userId)).thenReturn(noteEntity);
+        when(noteService.createNote(title, files, userId)).thenReturn(noteEntity);
         when(noteMapper.toDto(noteEntity)).thenReturn(expectedDto);
 
         // Act
-        NoteDto result = noteFacade.createNote(title, file, userId);
+        NoteDto result = noteFacade.createNote(title, files, userId);
 
         // Assert
         assertThat(result).isSameAs(expectedDto);
-        verify(noteService).createNote(title, file, userId);
+        verify(noteService).createNote(title, files, userId);
         verify(noteMapper).toDto(noteEntity);
     }
 

@@ -31,10 +31,10 @@ public class NoteController implements NoteResource {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<NoteDto> uploadNote(
             @RequestPart("title") String title,
-            @RequestPart("file") MultipartFile file,
+            @RequestPart("files") List<MultipartFile> files,
             @Parameter(hidden = true) @AuthenticationPrincipal SecurityUser securityUser) {
 
-        NoteDto createdNote = noteFacade.createNote(title, file, securityUser.getId());
+        NoteDto createdNote = noteFacade.createNote(title, files, securityUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdNote);
     }
 

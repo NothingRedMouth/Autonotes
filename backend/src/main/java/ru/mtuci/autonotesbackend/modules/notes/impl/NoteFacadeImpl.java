@@ -19,8 +19,8 @@ public class NoteFacadeImpl implements NoteFacade {
     private final NoteMapper noteMapper;
 
     @Override
-    public NoteDto createNote(String title, MultipartFile file, Long userId) {
-        LectureNote newNote = noteService.createNote(title, file, userId);
+    public NoteDto createNote(String title, List<MultipartFile> files, Long userId) {
+        LectureNote newNote = noteService.createNote(title, files, userId);
         return noteMapper.toDto(newNote);
     }
 
