@@ -3,12 +3,12 @@ package ru.mtuci.autonotesbackend.modules.notes.impl.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.persistence.EntityManager;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.mtuci.autonotesbackend.BaseIntegrationTest;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
-import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteImage;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
 import ru.mtuci.autonotesbackend.modules.user.impl.repository.UserRepository;
@@ -28,6 +28,43 @@ class LectureNoteRepositoryTest extends BaseIntegrationTest {
     private EntityManager entityManager;
 
     @Test
+    void findExistingPaths_shouldReturnOnlyPathsPresentInDb() {
+        // Arrange
+        User user = userRepository.save(User.builder()
+                .username("batch_check")
+                .email("batch@test.com")
+                .password("pass")
+                .build());
+
+        lectureNoteRepository.save(LectureNote.builder()
+                .user(user)
+                .title("Note 1")
+                .originalFileName("1.jpg")
+                .fileStoragePath("path/exist_1.jpg")
+                .status(NoteStatus.COMPLETED)
+                .build());
+
+        lectureNoteRepository.save(LectureNote.builder()
+                .user(user)
+                .title("Note 2")
+                .originalFileName("2.jpg")
+                .fileStoragePath("path/exist_2.jpg")
+                .status(NoteStatus.COMPLETED)
+                .build());
+
+        List<String> pathsToCheck =
+                List.of("path/exist_1.jpg", "path/exist_2.jpg", "path/phantom_file.jpg", "path/another_fake.jpg");
+
+        // Act
+        var result = lectureNoteRepository.findExistingPaths(pathsToCheck);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result).containsExactlyInAnyOrder("path/exist_1.jpg", "path/exist_2.jpg");
+        assertThat(result).doesNotContain("path/phantom_file.jpg");
+    }
+
+    @Test
     void hardDeleteById_shouldPhysicallyDeleteRecord() {
         // Arrange
         User user = userRepository.save(User.builder()
@@ -36,19 +73,14 @@ class LectureNoteRepositoryTest extends BaseIntegrationTest {
                 .password("pass")
                 .build());
 
-        LectureNote note = LectureNote.builder()
+        LectureNote note = lectureNoteRepository.save(LectureNote.builder()
                 .user(user)
                 .title("To Delete")
-                .status(NoteStatus.COMPLETED)
-                .build();
-
-        note.addImage(NoteImage.builder()
                 .originalFileName("file.jpg")
                 .fileStoragePath("path/del")
-                .orderIndex(0)
+                .status(NoteStatus.COMPLETED)
                 .build());
 
-        lectureNoteRepository.save(note);
         Long noteId = note.getId();
 
         // Act
@@ -62,5 +94,49 @@ class LectureNoteRepositoryTest extends BaseIntegrationTest {
         Integer count =
                 jdbcTemplate.queryForObject("SELECT count(*) FROM lecture_notes WHERE id = ?", Integer.class, noteId);
         assertThat(count).isEqualTo(0);
+    }
+
+    @Test
+    void shouldAllowReuseOfPath_AfterSoftDelete() {
+        // Arrange
+        User user = userRepository.save(User.builder()
+                .username("reuse_user")
+                .email("reuse@test.com")
+                .password("pass")
+                .build());
+
+        String sharedPath = "common/file.jpg";
+
+        LectureNote note1 = lectureNoteRepository.save(LectureNote.builder()
+                .user(user)
+                .title("Note 1")
+                .originalFileName("1.jpg")
+                .fileStoragePath(sharedPath)
+                .status(NoteStatus.COMPLETED)
+                .build());
+
+        lectureNoteRepository.delete(note1);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act
+        LectureNote note2 = LectureNote.builder()
+                .user(user)
+                .title("Note 2 - Reincarnation")
+                .originalFileName("2.jpg")
+                .fileStoragePath(sharedPath)
+                .status(NoteStatus.PROCESSING)
+                .build();
+
+        LectureNote savedNote2 = lectureNoteRepository.save(note2);
+        entityManager.flush();
+
+        // Assert
+        assertThat(savedNote2.getId()).isNotEqualTo(note1.getId());
+        assertThat(savedNote2.getFileStoragePath()).isEqualTo(sharedPath);
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM lecture_notes WHERE file_storage_path = ?", Integer.class, sharedPath);
+        assertThat(count).isEqualTo(2);
     }
 }

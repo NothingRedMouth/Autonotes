@@ -1,10 +1,11 @@
 package ru.mtuci.autonotesbackend.modules.notes.impl.repository;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,13 +17,24 @@ import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
 @Repository
 public interface LectureNoteRepository extends JpaRepository<LectureNote, Long> {
 
-    @EntityGraph(attributePaths = "images")
-    List<LectureNote> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<LectureNote> findByUserId(Long userId);
 
-    @EntityGraph(attributePaths = "images")
     Optional<LectureNote> findByIdAndUserId(Long id, Long userId);
 
     List<LectureNote> findAllByStatusAndUpdatedAtBefore(NoteStatus status, OffsetDateTime updatedAt, Pageable pageable);
+
+    @Query("SELECT ln.id as id, ln.user.id as userId, ln.title as title, "
+            + "ln.originalFileName as originalFileName, ln.status as status, "
+            + "ln.createdAt as createdAt "
+            + "FROM LectureNote ln WHERE ln.user.id = :userId "
+            + "ORDER BY ln.createdAt DESC")
+    List<NoteProjection> findAllProjectedByUserId(@Param("userId") Long userId);
+
+    @Query(value = "SELECT count(*) > 0 FROM lecture_notes WHERE file_storage_path = :path", nativeQuery = true)
+    boolean existsByFileStoragePath(@Param("path") String fileStoragePath);
+
+    @Query("SELECT ln.fileStoragePath FROM LectureNote ln WHERE ln.fileStoragePath IN :paths")
+    Set<String> findExistingPaths(@Param("paths") Collection<String> paths);
 
     @Query(value = "SELECT * FROM lecture_notes WHERE deleted_at < :threshold", nativeQuery = true)
     List<LectureNote> findAllSoftDeletedBefore(@Param("threshold") OffsetDateTime threshold, Pageable pageable);
@@ -30,4 +42,18 @@ public interface LectureNoteRepository extends JpaRepository<LectureNote, Long> 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "DELETE FROM lecture_notes WHERE id = :id", nativeQuery = true)
     void hardDeleteById(@Param("id") Long id);
+
+    interface NoteProjection {
+        Long getId();
+
+        Long getUserId();
+
+        String getTitle();
+
+        String getOriginalFileName();
+
+        NoteStatus getStatus();
+
+        OffsetDateTime getCreatedAt();
+    }
 }

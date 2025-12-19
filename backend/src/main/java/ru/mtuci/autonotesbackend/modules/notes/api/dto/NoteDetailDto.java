@@ -2,7 +2,6 @@ package ru.mtuci.autonotesbackend.modules.notes.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
-import java.util.List;
 import lombok.Data;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.NoteStatus;
 
@@ -19,8 +18,8 @@ public class NoteDetailDto {
     @Schema(description = "Заголовок конспекта", example = "Лекция по теории вероятностей")
     private String title;
 
-    @Schema(description = "Список изображений")
-    private List<NoteImageDto> images;
+    @Schema(description = "Оригинальное имя загруженного файла", example = "IMG_20240521_1030.jpg")
+    private String originalFileName;
 
     @Schema(description = "Статус обработки конспекта", example = "COMPLETED")
     private NoteStatus status;
