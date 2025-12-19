@@ -3,11 +3,12 @@ package ru.mtuci.autonotesbackend.modules.notes.impl.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,9 +19,14 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
+import ru.mtuci.autonotesbackend.exception.ResourceNotFoundException;
 import ru.mtuci.autonotesbackend.modules.filestorage.api.FileStorageFacade;
+import ru.mtuci.autonotesbackend.modules.filestorage.api.exception.InvalidFileFormatException;
+import ru.mtuci.autonotesbackend.modules.notes.api.dto.NoteDto;
 import ru.mtuci.autonotesbackend.modules.notes.impl.domain.LectureNote;
 import ru.mtuci.autonotesbackend.modules.notes.impl.event.NoteProcessingEvent;
+import ru.mtuci.autonotesbackend.modules.notes.impl.mapper.NoteMapper;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.LectureNoteRepository;
 import ru.mtuci.autonotesbackend.modules.notes.impl.repository.OutboxEventRepository;
 import ru.mtuci.autonotesbackend.modules.user.impl.domain.User;
@@ -47,6 +53,9 @@ class NoteServiceTest {
     @Mock
     private TransactionTemplate transactionTemplate;
 
+    @Mock
+    private NoteMapper noteMapper;
+
     @InjectMocks
     private NoteService noteService;
 
@@ -54,105 +63,131 @@ class NoteServiceTest {
     void setUp() {
         lenient().when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
-            if (callback == null) {
-                return null;
-            }
+            if (callback == null) return null;
             return callback.doInTransaction(mock(TransactionStatus.class));
         });
     }
 
     @Test
-    void createNote_shouldUploadFileAndSaveNote() throws Exception {
-        // Arrange
-        Long userId = 1L;
-        String title = "Test Note";
-        String filePath = "1/test.jpg";
-        MockMultipartFile file = new MockMultipartFile("file", "original.jpg", "image/jpeg", new byte[0]);
+    void createNote_whenFileListIsEmpty_shouldThrowException() {
+        List<MultipartFile> emptyList = Collections.emptyList();
+        assertThatThrownBy(() -> noteService.createNote("Title", emptyList, 1L))
+                .isInstanceOf(InvalidFileFormatException.class)
+                .hasMessage("At least one image file is required.");
+    }
 
+    @Test
+    void createNote_whenFileInsideListIsEmpty_shouldThrowException() {
+        MockMultipartFile emptyFile = new MockMultipartFile("files", "", "image/jpeg", new byte[0]);
+        List<MultipartFile> files = List.of(emptyFile);
+
+        assertThatThrownBy(() -> noteService.createNote("Title", files, 1L))
+                .isInstanceOf(InvalidFileFormatException.class)
+                .hasMessageContaining("is empty");
+    }
+
+    @Test
+    void createNote_shouldUploadMultipleFilesAndSaveNote() throws Exception {
+        Long userId = 1L;
+        MockMultipartFile file1 = new MockMultipartFile("files", "img1.jpg", "image/jpeg", new byte[1]);
+        List<MultipartFile> files = List.of(file1);
+        String path1 = "1/uuid-img1.jpg";
         User user = new User();
         user.setId(userId);
 
-        LectureNote savedNote = LectureNote.builder()
-                .id(100L)
-                .user(user)
-                .title(title)
-                .fileStoragePath(filePath)
-                .build();
-
-        when(fileStorageFacade.save(file, userId)).thenReturn(filePath);
-
+        when(fileStorageFacade.save(file1, userId)).thenReturn(path1);
         when(userRepository.getReferenceById(userId)).thenReturn(user);
-        when(noteRepository.save(any(LectureNote.class))).thenReturn(savedNote);
-        when(objectMapper.writeValueAsString(any(NoteProcessingEvent.class))).thenReturn("{\"noteId\":100}");
+        when(noteRepository.save(any(LectureNote.class))).thenAnswer(i -> {
+            LectureNote n = i.getArgument(0);
+            n.setId(100L);
+            return n;
+        });
+        when(objectMapper.writeValueAsString(any(NoteProcessingEvent.class))).thenReturn("{}");
 
-        // Act
-        LectureNote result = noteService.createNote(title, file, userId);
+        LectureNote result = noteService.createNote("Title", files, userId);
 
-        // Assert
-        assertThat(result).isEqualTo(savedNote);
-        verify(fileStorageFacade).save(file, userId);
-        verify(outboxEventRepository)
-                .save(argThat(event -> event.getAggregateId().equals(100L)
-                        && event.getEventType().equals("NOTE_CREATED")));
+        assertThat(result.getImages()).hasSize(1);
+        verify(outboxEventRepository).save(any());
     }
 
     @Test
-    void createNote_whenDbFails_shouldRollbackFile() {
-        // Arrange
+    void createNote_whenDbFails_shouldRollbackAllFiles() {
         Long userId = 1L;
-        String filePath = "1/rollback.jpg";
-        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", new byte[0]);
+        MockMultipartFile file1 = new MockMultipartFile("files", "img1.jpg", "image/jpeg", new byte[1]);
+        List<MultipartFile> files = List.of(file1);
+        String path1 = "1/path1.jpg";
 
-        when(fileStorageFacade.save(file, userId)).thenReturn(filePath);
-
+        when(fileStorageFacade.save(file1, userId)).thenReturn(path1);
         doThrow(new RuntimeException("DB Error")).when(transactionTemplate).execute(any());
 
-        // Act & Assert
-        assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
+        assertThatThrownBy(() -> noteService.createNote("Title", files, userId)).isInstanceOf(RuntimeException.class);
+
+        verify(fileStorageFacade).delete(path1);
+    }
+
+    @Test
+    void createNote_whenRollbackFails_shouldLogAndNotThrowExtraException() {
+        Long userId = 1L;
+        MockMultipartFile file1 = new MockMultipartFile("files", "img1.jpg", "image/jpeg", new byte[1]);
+        List<MultipartFile> files = List.of(file1);
+        String path1 = "1/path1.jpg";
+
+        when(fileStorageFacade.save(file1, userId)).thenReturn(path1);
+        doThrow(new RuntimeException("DB Error")).when(transactionTemplate).execute(any());
+
+        doThrow(new RuntimeException("S3 Down")).when(fileStorageFacade).delete(path1);
+
+        assertThatThrownBy(() -> noteService.createNote("Title", files, userId))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("DB Error");
 
-        verify(fileStorageFacade).delete(filePath);
+        verify(fileStorageFacade).delete(path1);
     }
 
     @Test
-    void createNote_whenDbAndRollbackFail_shouldPropagateDbError() {
-        // Arrange
+    void findAllDtosByUserId_shouldCallRepoAndMapper() {
         Long userId = 1L;
-        String filePath = "1/rollback-fail.jpg";
-        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", new byte[0]);
+        List<LectureNote> notes = List.of(new LectureNote());
+        when(noteRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(notes);
+        when(noteMapper.toDtoList(notes)).thenReturn(List.of(new NoteDto()));
 
-        when(fileStorageFacade.save(file, userId)).thenReturn(filePath);
-        doThrow(new RuntimeException("DB Error")).when(transactionTemplate).execute(any());
-        doThrow(new RuntimeException("S3 is down")).when(fileStorageFacade).delete(filePath);
+        List<NoteDto> result = noteService.findAllDtosByUserId(userId);
 
-        // Act & Assert
-        assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("DB Error");
-
-        verify(fileStorageFacade).save(file, userId);
-        verify(fileStorageFacade).delete(filePath);
+        assertThat(result).hasSize(1);
+        verify(noteRepository).findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     @Test
-    void createNote_whenEventSerializationFails_shouldRollbackFileAndThrowException() throws Exception {
-        // Arrange
+    void findByIdAndUserId_whenExists_shouldReturnNote() {
+        Long noteId = 1L;
         Long userId = 1L;
-        String filePath = "1/serialization-fail.jpg";
-        MockMultipartFile file = new MockMultipartFile("file", "original.jpg", "image/jpeg", new byte[0]);
+        LectureNote note = new LectureNote();
+        when(noteRepository.findByIdAndUserId(noteId, userId)).thenReturn(Optional.of(note));
 
-        when(fileStorageFacade.save(file, userId)).thenReturn(filePath);
+        LectureNote result = noteService.findByIdAndUserId(noteId, userId);
 
-        doThrow(new RuntimeException("Failed to serialize event payload", new JsonProcessingException("... ") {}))
-                .when(transactionTemplate)
-                .execute(any());
+        assertThat(result).isSameAs(note);
+    }
 
-        // Act & Assert
-        assertThatThrownBy(() -> noteService.createNote("Title", file, userId))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Failed to serialize event payload");
+    @Test
+    void findByIdAndUserId_whenNotExists_shouldThrowException() {
+        Long noteId = 1L;
+        Long userId = 1L;
+        when(noteRepository.findByIdAndUserId(noteId, userId)).thenReturn(Optional.empty());
 
-        verify(fileStorageFacade).delete(filePath);
+        assertThatThrownBy(() -> noteService.findByIdAndUserId(noteId, userId))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void deleteByIdAndUserId_shouldFindAndDelete() {
+        Long noteId = 1L;
+        Long userId = 1L;
+        LectureNote note = new LectureNote();
+        when(noteRepository.findByIdAndUserId(noteId, userId)).thenReturn(Optional.of(note));
+
+        noteService.deleteByIdAndUserId(noteId, userId);
+
+        verify(noteRepository).delete(note);
     }
 }

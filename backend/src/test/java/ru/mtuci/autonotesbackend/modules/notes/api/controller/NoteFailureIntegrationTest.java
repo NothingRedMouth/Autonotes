@@ -61,7 +61,7 @@ class NoteFailureIntegrationTest extends BaseIntegrationTest {
         byte[] validJpegBytes = new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x01};
 
         MockMultipartFile file =
-                new MockMultipartFile("file", "rollback_check.jpg", MediaType.IMAGE_JPEG_VALUE, validJpegBytes);
+                new MockMultipartFile("files", "rollback_check.jpg", MediaType.IMAGE_JPEG_VALUE, validJpegBytes);
         MockPart title = new MockPart("title", "Fail Note".getBytes());
 
         doThrow(new RuntimeException("Database Connection Error"))
