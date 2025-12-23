@@ -1,5 +1,6 @@
 package ru.mtuci.autonotesbackend.modules.filestorage.impl.service;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
@@ -34,7 +35,9 @@ public class FileStorageService {
             throw new InvalidFileFormatException("Cannot save an empty file.");
         }
 
-        try (InputStream is = file.getInputStream()) {
+        try (InputStream is = new BufferedInputStream(file.getInputStream())) {
+            is.mark(10 * 1024);
+
             String detectedType = tika.detect(is);
 
             if (!detectedType.startsWith("image/")) {
@@ -45,11 +48,9 @@ public class FileStorageService {
                         detectedType);
                 throw new InvalidFileFormatException("Invalid file type. Only images are allowed.");
             }
-        } catch (IOException e) {
-            throw new InvalidFileFormatException("Failed to validate file content");
-        }
 
-        try (InputStream is = file.getInputStream()) {
+            is.reset();
+
             String extension = FilenameUtils.getExtension(file.getOriginalFilename());
             if (extension == null || extension.isBlank()) {
                 extension = "jpg";
