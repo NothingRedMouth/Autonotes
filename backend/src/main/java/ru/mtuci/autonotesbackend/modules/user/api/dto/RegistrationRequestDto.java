@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @Builder
@@ -29,5 +30,6 @@ public class RegistrationRequestDto {
     @Schema(description = "Пароль (минимум 8 символов)", example = "Str0ngP@ssw0rd")
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 8, message = "Password must be at least 8 characters long")
+    @ToString.Exclude
     private String password;
 }
