@@ -23,6 +23,8 @@ import org.testcontainers.utility.DockerImageName;
 @ContextConfiguration(initializers = BaseIntegrationTest.Initializer.class)
 public abstract class BaseIntegrationTest {
 
+    protected static final String TEST_JWT_SECRET = "dGVzdC1zZWNyZXQtZm9yLWp3dC10ZXN0aW5nLWxvbmctZW5vdWdo";
+
     @Autowired
     protected MockMvc mockMvc;
 
@@ -49,7 +51,7 @@ public abstract class BaseIntegrationTest {
                             "spring.flyway.url=" + postgres.getJdbcUrl(),
                             "spring.flyway.user=" + postgres.getUsername(),
                             "spring.flyway.password=" + postgres.getPassword(),
-                            "JWT_SECRET=dGVzdC1zZWNyZXQtZm9yLWp3dC10ZXN0aW5nLWxvbmctZW5vdWdo",
+                            "JWT_SECRET=" + TEST_JWT_SECRET,
                             "JWT_EXPIRATION_MS=86400000",
                             "aws.s3.endpoint=" + minio.getS3URL(),
                             "aws.s3.access-key=" + minio.getUserName(),
