@@ -124,6 +124,7 @@ tasks.jacocoTestCoverageVerification {
                 "**/*Dto*",
                 "**/*Request*",
                 "**/*Response*",
+                "**/*Exception*",
             )
         }
     }

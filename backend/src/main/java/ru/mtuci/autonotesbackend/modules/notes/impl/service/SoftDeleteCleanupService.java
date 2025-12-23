@@ -44,39 +44,29 @@ public class SoftDeleteCleanupService {
                     return false;
                 }
 
-                boolean progressMade = false;
-
                 for (LectureNote note : expiredNotes) {
-                    try {
-                        boolean allFilesDeleted = true;
-
-                        if (note.getImages() != null) {
-                            for (NoteImage image : note.getImages()) {
-                                try {
-                                    fileStorageFacade.delete(image.getFileStoragePath());
-                                } catch (Exception e) {
-                                    log.warn(
-                                            "Failed to delete file from S3: {}. Skipping DB deletion for note {}.",
-                                            image.getFileStoragePath(),
-                                            note.getId(),
-                                            e);
-                                    allFilesDeleted = false;
-                                }
+                    if (note.getImages() != null) {
+                        for (NoteImage image : note.getImages()) {
+                            try {
+                                fileStorageFacade.delete(image.getFileStoragePath());
+                            } catch (Exception e) {
+                                log.warn(
+                                        "Failed to delete file from S3: {}. It will be cleaned up by GC later.",
+                                        image.getFileStoragePath(),
+                                        e);
                             }
                         }
+                    }
 
-                        if (allFilesDeleted) {
-                            noteRepository.hardDeleteById(note.getId());
-                            log.debug("Permanently deleted note ID: {}", note.getId());
-                            progressMade = true;
-                        }
-
+                    try {
+                        noteRepository.hardDeleteById(note.getId());
+                        log.debug("Permanently deleted note ID: {}", note.getId());
                     } catch (Exception e) {
-                        log.error("Failed to cleanup note ID: {}", note.getId(), e);
+                        log.error("Failed to hard delete note ID: {} from DB", note.getId(), e);
                     }
                 }
 
-                return progressMade;
+                return expiredNotes.size() == batchSize;
             }));
 
             if (hasMore) {

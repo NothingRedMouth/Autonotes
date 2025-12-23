@@ -2,13 +2,12 @@ package ru.mtuci.autonotesbackend.modules.notes.impl.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,37 +25,47 @@ public class OutboxPublisherService {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
+    private static final int BATCH_SIZE = 50;
+
     @Scheduled(fixedDelayString = "${app.scheduling.outbox-interval-ms:2000}")
     @Transactional
     public void publishEvents() {
-        List<OutboxEvent> events = outboxEventRepository
-                .findAll(PageRequest.of(0, 50, Sort.by(Sort.Direction.ASC, "createdAt")))
-                .getContent();
+        List<OutboxEvent> events = outboxEventRepository.findBatchToProcess(BATCH_SIZE);
 
         if (events.isEmpty()) {
             return;
         }
 
+        List<OutboxEvent> processedEvents = new ArrayList<>();
+
         for (OutboxEvent event : events) {
             try {
                 processEvent(event);
-                outboxEventRepository.delete(event);
+                processedEvents.add(event);
 
             } catch (JsonProcessingException e) {
                 log.error(
                         "Fatal error: Corrupted payload in event ID {}. Deleting to prevent blocking.",
                         event.getId(),
                         e);
-                outboxEventRepository.delete(event);
+                processedEvents.add(event);
 
             } catch (AmqpException e) {
-                log.error("Transient error: Could not connect to RabbitMQ. Will retry later.", e);
+                log.error(
+                        "Transient error: Could not connect to RabbitMQ for event ID {}. Will retry later.",
+                        event.getId(),
+                        e);
                 break;
 
             } catch (Exception e) {
                 log.error("Unknown error processing event ID {}. Stopping batch.", event.getId(), e);
                 break;
             }
+        }
+
+        if (!processedEvents.isEmpty()) {
+            outboxEventRepository.deleteAllInBatch(processedEvents);
+            log.debug("Published and deleted {} outbox events.", processedEvents.size());
         }
     }
 

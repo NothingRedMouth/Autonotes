@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @Builder
@@ -19,5 +20,6 @@ public class AuthRequestDto {
 
     @Schema(description = "Пароль", example = "Str0ngP@ssw0rd")
     @NotBlank(message = "Password cannot be blank")
+    @ToString.Exclude
     private String password;
 }

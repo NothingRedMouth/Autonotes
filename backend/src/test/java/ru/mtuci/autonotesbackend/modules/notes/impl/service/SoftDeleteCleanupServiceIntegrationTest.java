@@ -115,7 +115,7 @@ class SoftDeleteCleanupServiceIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void shouldNotDeleteFromDb_WhenS3Fails() {
+    void shouldDeleteFromDb_EvenIfS3Fails() {
         // Arrange
         User user = createUser("error_user", "error@test.com");
         String path = "error_user/fail.jpg";
@@ -128,7 +128,7 @@ class SoftDeleteCleanupServiceIntegrationTest extends BaseIntegrationTest {
         cleanupService.permanentlyDeleteOldNotes();
 
         // Assert
-        assertThat(checkRecordExistsInDb(note.getId())).isTrue();
+        assertThat(checkRecordExistsInDb(note.getId())).isFalse();
 
         verify(fileStorageFacade, times(1)).delete(path);
     }
