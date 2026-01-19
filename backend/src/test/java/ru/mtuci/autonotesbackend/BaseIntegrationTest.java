@@ -23,6 +23,10 @@ import org.testcontainers.utility.DockerImageName;
 @ContextConfiguration(initializers = BaseIntegrationTest.Initializer.class)
 public abstract class BaseIntegrationTest {
 
+    static {
+        System.setProperty("DOCKER_API_VERSION", "1.44");
+    }
+
     protected static final String TEST_JWT_SECRET = "dGVzdC1zZWNyZXQtZm9yLWp3dC10ZXN0aW5nLWxvbmctZW5vdWdo";
 
     @Autowired
