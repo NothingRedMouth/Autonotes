@@ -55,9 +55,9 @@ public class RabbitMqConfig {
     @Bean
     public Queue processingQueue() {
         return QueueBuilder.durable(QUEUE_NOTES_PROCESS)
-            .withArgument("x-dead-letter-exchange", EXCHANGE_NOTES)
-            .withArgument("x-dead-letter-routing-key", ROUTING_KEY_PROCESS_DLQ)
-            .build();
+                .withArgument("x-dead-letter-exchange", EXCHANGE_NOTES)
+                .withArgument("x-dead-letter-routing-key", ROUTING_KEY_PROCESS_DLQ)
+                .build();
     }
 
     @Bean
@@ -78,9 +78,9 @@ public class RabbitMqConfig {
     @Bean
     public Queue resultsQueue() {
         return QueueBuilder.durable(QUEUE_NOTES_RESULTS)
-            .withArgument("x-dead-letter-exchange", EXCHANGE_NOTES)
-            .withArgument("x-dead-letter-routing-key", ROUTING_KEY_RESULTS_DLQ)
-            .build();
+                .withArgument("x-dead-letter-exchange", EXCHANGE_NOTES)
+                .withArgument("x-dead-letter-routing-key", ROUTING_KEY_RESULTS_DLQ)
+                .build();
     }
 
     @Bean

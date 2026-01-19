@@ -41,40 +41,35 @@ class NoteResultIntegrationTest extends BaseIntegrationTest {
     @Test
     void shouldUpdateNoteStatus_WhenMlResultReceived() {
         User user = userRepository.save(User.builder()
-            .username("async_user")
-            .email("async@test.com")
-            .password("pass")
-            .build());
+                .username("async_user")
+                .email("async@test.com")
+                .password("pass")
+                .build());
 
         LectureNote note = noteRepository.save(LectureNote.builder()
-            .user(user)
-            .title("Async Note")
-            .status(NoteStatus.PROCESSING)
-            .build());
+                .user(user)
+                .title("Async Note")
+                .status(NoteStatus.PROCESSING)
+                .build());
 
         Long noteId = note.getId();
 
         NoteResultDto resultDto = NoteResultDto.builder()
-            .noteId(noteId)
-            .status("COMPLETED")
-            .recognizedText("# Success\nText recognized.")
-            .summaryText("Short summary.")
-            .build();
+                .noteId(noteId)
+                .status("COMPLETED")
+                .recognizedText("# Success\nText recognized.")
+                .summaryText("Short summary.")
+                .build();
 
-        rabbitTemplate.convertAndSend(
-            RabbitMqConfig.EXCHANGE_NOTES,
-            RabbitMqConfig.ROUTING_KEY_RESULTS,
-            resultDto
-        );
+        rabbitTemplate.convertAndSend(RabbitMqConfig.EXCHANGE_NOTES, RabbitMqConfig.ROUTING_KEY_RESULTS, resultDto);
 
-        await()
-            .atMost(10, TimeUnit.SECONDS)
-            .pollInterval(Duration.ofMillis(500))
-            .untilAsserted(() -> {
-                LectureNote updatedNote = noteRepository.findById(noteId).orElseThrow();
+        await().atMost(10, TimeUnit.SECONDS)
+                .pollInterval(Duration.ofMillis(500))
+                .untilAsserted(() -> {
+                    LectureNote updatedNote = noteRepository.findById(noteId).orElseThrow();
 
-                assertThat(updatedNote.getStatus()).isEqualTo(NoteStatus.COMPLETED);
-                assertThat(updatedNote.getRecognizedText()).isEqualTo("# Success\nText recognized.");
-            });
+                    assertThat(updatedNote.getStatus()).isEqualTo(NoteStatus.COMPLETED);
+                    assertThat(updatedNote.getRecognizedText()).isEqualTo("# Success\nText recognized.");
+                });
     }
 }

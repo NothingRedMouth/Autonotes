@@ -104,27 +104,37 @@ public class NoteService {
     public void processCompletion(NoteResultDto result) {
         log.info("Processing ML result for noteId: {}", result.getNoteId());
 
-        noteRepository.findById(result.getNoteId()).ifPresentOrElse(note -> {
-            if (note.getStatus() != NoteStatus.PROCESSING) {
-                log.warn("Note {} is already in status {}. Ignoring duplicate result.", note.getId(), note.getStatus());
-                return;
-            }
+        noteRepository
+                .findById(result.getNoteId())
+                .ifPresentOrElse(
+                        note -> {
+                            if (note.getStatus() != NoteStatus.PROCESSING) {
+                                log.warn(
+                                        "Note {} is already in status {}. Ignoring duplicate result.",
+                                        note.getId(),
+                                        note.getStatus());
+                                return;
+                            }
 
-            if ("COMPLETED".equalsIgnoreCase(result.getStatus())) {
-                note.setStatus(NoteStatus.COMPLETED);
-                note.setRecognizedText(result.getRecognizedText());
-                note.setSummaryText(result.getSummaryText());
-                log.info("Note {} successfully updated with ML data.", note.getId());
-            } else {
-                note.setStatus(NoteStatus.FAILED);
-                String errorMsg = result.getErrorMessage() != null ? result.getErrorMessage() : "Unknown ML Error";
-                note.setSummaryText("Processing failed: " + errorMsg);
-                log.error("Note {} failed processing. Reason: {}", note.getId(), errorMsg);
-            }
+                            if ("COMPLETED".equalsIgnoreCase(result.getStatus())) {
+                                note.setStatus(NoteStatus.COMPLETED);
+                                note.setRecognizedText(result.getRecognizedText());
+                                note.setSummaryText(result.getSummaryText());
+                                log.info("Note {} successfully updated with ML data.", note.getId());
+                            } else {
+                                note.setStatus(NoteStatus.FAILED);
+                                String errorMsg = result.getErrorMessage() != null
+                                        ? result.getErrorMessage()
+                                        : "Unknown ML Error";
+                                note.setSummaryText("Processing failed: " + errorMsg);
+                                log.error("Note {} failed processing. Reason: {}", note.getId(), errorMsg);
+                            }
 
-            noteRepository.save(note);
-
-        }, () -> log.warn("Received result for non-existent (or deleted) noteId: {}. Skipping.", result.getNoteId()));
+                            noteRepository.save(note);
+                        },
+                        () -> log.warn(
+                                "Received result for non-existent (or deleted) noteId: {}. Skipping.",
+                                result.getNoteId()));
     }
 
     private void rollbackS3Uploads(List<String> paths) {
