@@ -89,6 +89,7 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
+    systemProperty("com.github.dockerjava.api.version", "1.44")
 }
 
 // =============================================
