@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // Добавил useCallback
 import { Link } from 'react-router-dom';
 import { getAllNotes } from '../services/noteService';
 import { STATUS_COLORS, STATUS_TEXTS, NOTE_STATUS } from '../utils/constants';
@@ -8,30 +8,34 @@ const NotesDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchNotes();
-    
-    // Авто-обновление для конспектов в обработке
-    const interval = setInterval(() => {
-      const hasProcessingNotes = notes.some(note => note.status === NOTE_STATUS.PROCESSING);
-      if (hasProcessingNotes) {
-        fetchNotes();
-      }
-    }, 10000); // Проверка каждые 10 секунд
-
-    return () => clearInterval(interval);
-  }, [notes]);
-
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async (isSilent = false) => {
     try {
+      if (!isSilent) setLoading(true);
       const notesData = await getAllNotes();
       setNotes(notesData);
     } catch (err) {
       setError(err.message || 'Ошибка загрузки конспектов');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, []);
+
+  //Исправление бесконечных запросов
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  //Авто-обновление
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const hasProcessingNotes = notes.some(note => note.status === NOTE_STATUS.PROCESSING);
+      if (hasProcessingNotes) {
+        fetchNotes(true);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [notes, fetchNotes]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
@@ -43,7 +47,7 @@ const NotesDashboard = () => {
     });
   };
 
-  if (loading) return <div style={{ padding: 20, textAlign: 'center' }}>Загрузка конспектов...</div>;
+  if (loading && notes.length === 0) return <div style={{ padding: 20, textAlign: 'center' }}>Загрузка конспектов...</div>;
   if (error) return <div style={{ padding: 20, color: 'red', textAlign: 'center' }}>{error}</div>;
 
   return (
@@ -74,7 +78,7 @@ const NotesDashboard = () => {
           border: '2px dashed #dee2e6'
         }}>
           <h3>У вас пока нет конспектов</h3>
-          <p>Начните с загрузки первого изображения!</p>
+          <p>Начните с загрузки файлов!</p>
           <Link 
             to="/upload"
             style={{
@@ -96,6 +100,7 @@ const NotesDashboard = () => {
             <Link 
               key={note.id} 
               to={`/notes/${note.id}`}
+              className="note-card"
               style={{
                 display: 'block',
                 padding: 20,
@@ -106,14 +111,6 @@ const NotesDashboard = () => {
                 color: 'inherit',
                 transition: 'all 0.2s',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -128,7 +125,9 @@ const NotesDashboard = () => {
                   }}>
                     Создан: {formatDate(note.createdAt)}
                   </p>
-                  {note.recognizedText && (
+                  
+                  {/* 4. Показываем ТОЛЬКО саммари */}
+                  {note.summary && (
                     <p style={{ 
                       margin: 0,
                       color: '#374151',
@@ -136,9 +135,10 @@ const NotesDashboard = () => {
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      fontStyle: 'italic'
                     }}>
-                      {note.recognizedText}
+                      {note.summary}
                     </p>
                   )}
                 </div>
@@ -149,7 +149,9 @@ const NotesDashboard = () => {
                   borderRadius: 20,
                   fontSize: '12px',
                   fontWeight: 'bold',
-                  textTransform: 'uppercase'
+                  marginLeft: 10,
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap'
                 }}>
                   {STATUS_TEXTS[note.status] || note.status}
                 </div>
