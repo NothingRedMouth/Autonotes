@@ -19,7 +19,7 @@ const validateFile = (file) => {
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error('Размер файла не должен превышать 10MB.');
+    throw new Error(`Размер файла не должен превышать ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
   }
 
   return true;
@@ -36,14 +36,16 @@ export const getAllNotes = async () => {
 };
 
 // Создание нового конспекта
-export const createNote = async (title, file) => {
+export const createNote = async (title, files) => {
   try {
-    // Валидация файла
-    validateFile(file);
+    const filesArray = Array.isArray(files) ? files : [files];
+    filesArray.forEach(validateFile);
 
     const formData = new FormData();
     formData.append('title', title);
-    formData.append('file', file);
+    filesArray.forEach(file => {
+      formData.append('files', file);
+    });
 
     const response = await api.post('/notes', formData, {
       headers: {
