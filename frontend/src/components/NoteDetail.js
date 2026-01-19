@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getNoteById, deleteNote } from '../services/noteService';
+import { STATUS_TEXTS } from '../utils/constants';
 
 const NoteDetail = () => {
   const { noteId } = useParams();
@@ -78,68 +79,367 @@ const NoteDetail = () => {
     });
   };
 
-  if (loading && !note) return <div style={{ padding: 20, textAlign: 'center' }}>Загрузка конспекта...</div>;
-  if (error) return <div style={{ padding: 20, color: 'red', textAlign: 'center' }}>{error}</div>;
-  if (!note) return <div style={{ padding: 20, textAlign: 'center' }}>Конспект не найден</div>;
+  if (loading && !note) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '50vh',
+        gap: 'var(--spacing-4)'
+      }}>
+        <div className="loading-spinner" style={{ width: '2rem', height: '2rem' }}></div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-lg)' }}>
+          Загрузка конспекта...
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '50vh',
+        gap: 'var(--spacing-4)'
+      }}>
+        <div style={{
+          fontSize: '3rem',
+          color: 'var(--error-color)',
+          marginBottom: 'var(--spacing-4)'
+        }}>
+          ⚠️
+        </div>
+        <h2 style={{ color: 'var(--text-primary)', margin: 0 }}>Ошибка загрузки</h2>
+        <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>{error}</p>
+        <Link to="/dashboard" className="btn btn-primary">
+          Вернуться к списку
+        </Link>
+      </div>
+    );
+  }
+
+  if (!note) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '50vh',
+        gap: 'var(--spacing-4)'
+      }}>
+        <div style={{
+          fontSize: '3rem',
+          color: 'var(--text-secondary)',
+          marginBottom: 'var(--spacing-4)'
+        }}>
+          📄
+        </div>
+        <h2 style={{ color: 'var(--text-primary)', margin: 0 }}>Конспект не найден</h2>
+        <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+          Возможно, он был удален или у вас нет доступа к нему
+        </p>
+        <Link to="/dashboard" className="btn btn-primary">
+          Вернуться к списку
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 20 }}>
-      <div style={{ marginBottom: 24 }}>
-        <Link to="/dashboard" style={{ color: '#007bff', textDecoration: 'none', fontSize: '14px', marginBottom: 16, display: 'inline-block' }}>
-          ← Назад к списку конспектов
+    <div className="slide-up">
+      <nav style={{
+        marginBottom: 'var(--spacing-6)',
+        fontSize: 'var(--font-size-sm)'
+      }}>
+        <Link
+          to="/dashboard"
+          style={{
+            color: 'var(--text-secondary)',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--spacing-1)'
+          }}
+        >
+          <span>←</span>
+          Назад к списку конспектов
         </Link>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 8 }}>
-          <div>
-            <h1 style={{ margin: '0 0 8px 0' }}>{note.title}</h1>
-            <p style={{ color: '#6b7280', margin: 0 }}>
-              Создан: {formatDate(note.createdAt)}
+      </nav>
+
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 'var(--spacing-8)',
+        flexWrap: 'wrap',
+        gap: 'var(--spacing-4)'
+      }}>
+        <div style={{ flex: 1, minWidth: 300 }}>
+          <h1 style={{
+            fontSize: 'var(--font-size-3xl)',
+            fontWeight: '700',
+            color: 'var(--text-primary)',
+            margin: '0 0 var(--spacing-2) 0',
+            lineHeight: 1.2
+          }}>
+            {note.title}
+          </h1>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--spacing-4)',
+            flexWrap: 'wrap'
+          }}>
+            <p style={{
+              color: 'var(--text-secondary)',
+              margin: 0,
+              fontSize: 'var(--font-size-sm)'
+            }}>
+              📅 {formatDate(note.createdAt)}
             </p>
+            {note.updatedAt && note.updatedAt !== note.createdAt && (
+              <p style={{
+                color: 'var(--text-muted)',
+                margin: 0,
+                fontSize: 'var(--font-size-sm)'
+              }}>
+                ✏️ Обновлено {formatDate(note.updatedAt)}
+              </p>
+            )}
           </div>
-          
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ padding: '6px 16px', background: getStatusColor(note.status), color: 'white', borderRadius: 20, fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-              {getStatusText(note.status)}
-            </div>
-            <button onClick={handleDelete} disabled={deleteLoading} style={{ padding: '6px 12px', border: '1px solid #dc2626', borderRadius: 6, backgroundColor: 'white', color: '#dc2626', cursor: deleteLoading ? 'not-allowed' : 'pointer', fontSize: '14px' }}>
-              {deleteLoading ? 'Удаление...' : 'Удалить'}
-            </button>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: 'var(--spacing-3)',
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <div className={`status-badge status-${note.status.toLowerCase()}`} style={{
+            fontSize: 'var(--font-size-sm)',
+            padding: 'var(--spacing-2) var(--spacing-4)'
+          }}>
+            {STATUS_TEXTS[note.status] || note.status}
           </div>
+          <button
+            onClick={handleDelete}
+            disabled={deleteLoading}
+            className="btn btn-danger"
+            style={{
+              padding: 'var(--spacing-2) var(--spacing-4)',
+              fontSize: 'var(--font-size-sm)'
+            }}
+          >
+            {deleteLoading ? (
+              <>
+                <span className="loading-spinner" style={{ marginRight: 'var(--spacing-2)' }}></span>
+                Удаление...
+              </>
+            ) : (
+              <>
+                <span>🗑️</span>
+                Удалить
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 24 }}>
-        
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, padding: 20 }}>
-          <h4 style={{ margin: '0 0 12px 0' }}>Прикрепленные файлы:</h4>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {note.files && note.files.length > 0 ? note.files.map((file, idx) => (
-              <li key={idx} style={{ padding: '4px 0', color: '#4b5563' }}>📎 {file.name || `Файл ${idx + 1}`}</li>
-            )) : <li style={{ color: '#9ca3af' }}>Файлы не найдены</li>}
-          </ul>
+      <div style={{ display: 'grid', gap: 'var(--spacing-6)' }}>
+        <div className="card" style={{ padding: 'var(--spacing-6)' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--spacing-2)',
+            marginBottom: 'var(--spacing-4)'
+          }}>
+            <span style={{ fontSize: '1.25rem' }}>📎</span>
+            <h3 style={{
+              fontSize: 'var(--font-size-lg)',
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              margin: 0
+            }}>
+              Прикрепленные файлы
+            </h3>
+          </div>
+          {note.images && note.images.length > 0 ? (
+            <div style={{
+              display: 'grid',
+              gap: 'var(--spacing-3)',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))'
+            }}>
+              {note.images
+                .sort((a, b) => a.orderIndex - b.orderIndex)
+                .map((image, idx) => (
+                  <div
+                    key={image.id || idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--spacing-3)',
+                      padding: 'var(--spacing-3)',
+                      backgroundColor: 'var(--background-color)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.25rem' }}>📄</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: 'var(--font-size-sm)',
+                        fontWeight: '500',
+                        color: 'var(--text-primary)',
+                        margin: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {image.originalFileName || `Изображение ${idx + 1}`}
+                      </p>
+                      <p style={{
+                        fontSize: 'var(--font-size-xs)',
+                        color: 'var(--text-muted)',
+                        margin: 'var(--spacing-1) 0 0 0'
+                      }}>
+                        #{idx + 1} в последовательности
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div style={{
+              textAlign: 'center',
+              padding: 'var(--spacing-8)',
+              color: 'var(--text-muted)',
+              fontSize: 'var(--font-size-sm)'
+            }}>
+              <span style={{ fontSize: '2rem', marginBottom: 'var(--spacing-2)', display: 'block' }}>📭</span>
+              Файлы не найдены
+            </div>
+          )}
         </div>
 
-        {note.summary && (
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, padding: 24 }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#1f2937' }}>Конспект (Summary)</h3>
-            <div style={{ background: '#f0f9ff', padding: 16, borderRadius: 6, lineHeight: 1.6, fontSize: '15px', borderLeft: '4px solid #007bff' }}>
-              {note.summary}
+        {note.summaryText && (
+          <div className="card" style={{ padding: 'var(--spacing-8)' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-2)',
+              marginBottom: 'var(--spacing-6)'
+            }}>
+              <span style={{ fontSize: '1.25rem' }}>📝</span>
+              <h3 style={{
+                fontSize: 'var(--font-size-xl)',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: 0
+              }}>
+                Конспект
+              </h3>
+            </div>
+            <div style={{
+              backgroundColor: 'var(--primary-light)',
+              padding: 'var(--spacing-6)',
+              borderRadius: 'var(--radius-lg)',
+              borderLeft: '4px solid var(--primary-color)',
+              lineHeight: 1.7,
+              fontSize: 'var(--font-size-base)',
+              color: 'var(--text-primary)'
+            }}>
+              {note.summaryText.split('\n').map((paragraph, idx) => (
+                <p key={idx} style={{ margin: 0, marginBottom: idx < note.summaryText.split('\n').length - 1 ? 'var(--spacing-4)' : 0 }}>
+                  {paragraph}
+                </p>
+              ))}
             </div>
           </div>
         )}
 
         {note.status === 'PROCESSING' && (
-          <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: 8, padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-            <h3 style={{ margin: '0 0 8px 0', color: '#92400e' }}>Идет анализ...</h3>
-            <p style={{ color: '#b45309', margin: 0 }}>Результат появится здесь автоматически, как только ИИ закончит работу.</p>
+          <div style={{
+            backgroundColor: '#fefce8',
+            border: '1px solid var(--warning-color)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--spacing-8)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '3rem',
+              marginBottom: 'var(--spacing-4)',
+              animation: 'pulse 2s ease-in-out infinite'
+            }}>
+              ⏳
+            </div>
+            <h3 style={{
+              fontSize: 'var(--font-size-xl)',
+              fontWeight: '600',
+              color: '#92400e',
+              margin: '0 0 var(--spacing-3) 0'
+            }}>
+              Идет анализ...
+            </h3>
+            <p style={{
+              color: '#b45309',
+              margin: 0,
+              fontSize: 'var(--font-size-base)'
+            }}>
+              ИИ обрабатывает ваши фотографии. Результат появится здесь автоматически.
+            </p>
+            <div style={{
+              marginTop: 'var(--spacing-4)',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 'var(--spacing-2)'
+            }}>
+              <div className="loading-spinner"></div>
+              <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+                Обработка может занять несколько минут
+              </span>
+            </div>
           </div>
         )}
 
         {note.status === 'FAILED' && (
-          <div style={{ background: '#fef2f2', border: '1px solid #ef4444', borderRadius: 8, padding: 24, textAlign: 'center' }}>
-            <h3 style={{ margin: '0 0 8px 0', color: '#dc2626' }}>Ошибка обработки</h3>
-            <p style={{ color: '#b91c1c', margin: 0 }}>Попробуйте перезагрузить файлы.</p>
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid var(--error-color)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 'var(--spacing-8)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '3rem',
+              marginBottom: 'var(--spacing-4)',
+              color: 'var(--error-color)'
+            }}>
+              ❌
+            </div>
+            <h3 style={{
+              fontSize: 'var(--font-size-xl)',
+              fontWeight: '600',
+              color: 'var(--error-color)',
+              margin: '0 0 var(--spacing-3) 0'
+            }}>
+              Ошибка обработки
+            </h3>
+            <p style={{
+              color: '#dc2626',
+              margin: '0 0 var(--spacing-6) 0',
+              fontSize: 'var(--font-size-base)'
+            }}>
+              Не удалось обработать фотографии. Попробуйте загрузить их снова с лучшим качеством.
+            </p>
+            <Link to="/upload" className="btn btn-primary">
+              Загрузить заново
+            </Link>
           </div>
         )}
       </div>
