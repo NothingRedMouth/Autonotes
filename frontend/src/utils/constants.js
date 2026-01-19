@@ -19,13 +19,14 @@ export const STATUS_TEXTS = {
   [NOTE_STATUS.FAILED]: 'Ошибка'
 };
 
-// Максимальный размер файла (10MB)
-export const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// Максимальный размер файла (Подняли до 50MB по задаче)
+export const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-// Разрешенные типы файлов
+
 export const ALLOWED_FILE_TYPES = [
   'image/jpeg',
   'image/jpg',
   'image/png',
-  'image/gif'
+  'image/gif',
+  'application/pdf' 
 ];
